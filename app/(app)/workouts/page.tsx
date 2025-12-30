@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
 import { ExerciseLibrary, Workout, WorkoutVolume } from '@/lib/types'
@@ -46,6 +46,8 @@ const toEditableExercises = (volume?: WorkoutVolume | null): EditableExercise[] 
 
 export default function WorkoutsPage() {
   const supabase = createClient()
+  const workoutRequestRef = useRef(0)
+  const libraryRequestRef = useRef(0)
 
   const [date, setDate] = useState(defaultDate())
   const [workoutTitle, setWorkoutTitle] = useState('Workout')
@@ -87,12 +89,13 @@ export default function WorkoutsPage() {
   }
 
   const loadWorkoutForDate = async (selectedDate: string) => {
+    const requestId = ++workoutRequestRef.current
     setLoadingBuilder(true)
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user || requestId !== workoutRequestRef.current) return
 
       const { data, error } = await supabase
         .from('workouts')
@@ -103,6 +106,8 @@ export default function WorkoutsPage() {
         .limit(1)
 
       if (error) throw error
+
+      if (requestId !== workoutRequestRef.current) return
 
       if (data && data.length > 0) {
         const workout = data[0]
@@ -119,7 +124,9 @@ export default function WorkoutsPage() {
     } catch (error) {
       console.error('Error loading workout:', error)
     } finally {
-      setLoadingBuilder(false)
+      if (requestId === workoutRequestRef.current) {
+        setLoadingBuilder(false)
+      }
     }
   }
 
@@ -145,12 +152,13 @@ export default function WorkoutsPage() {
   }
 
   const loadLibrary = async (term: string) => {
+    const requestId = ++libraryRequestRef.current
     setLibraryLoading(true)
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user || requestId !== libraryRequestRef.current) return
 
       let query = supabase
         .from('exercises_library')
@@ -168,6 +176,8 @@ export default function WorkoutsPage() {
       const { data, error } = await query
       if (error) throw error
 
+      if (requestId !== libraryRequestRef.current) return
+
       setLibraryResults(data || [])
 
       if (!term) {
@@ -181,7 +191,9 @@ export default function WorkoutsPage() {
     } catch (error) {
       console.error('Error loading exercise library:', error)
     } finally {
-      setLibraryLoading(false)
+      if (requestId === libraryRequestRef.current) {
+        setLibraryLoading(false)
+      }
     }
   }
 
