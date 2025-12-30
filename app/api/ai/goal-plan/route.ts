@@ -3,44 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
 import { TrackingPlan } from '@/lib/types'
 
-// #region agent log
-const debugLog = (
-  message: string,
-  data: Record<string, unknown>,
-  hypothesisId: string
-) =>
-  fetch('http://127.0.0.1:7245/ingest/d6aa76b2-a494-4e8c-b5eb-df8531eebc37', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: 'debug-session',
-      runId: 'pre-fix',
-      hypothesisId,
-      location: 'app/api/ai/goal-plan/route.ts',
-      message,
-      data,
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-// #endregion
 
 export async function POST(request: NextRequest) {
   try {
-    // #region agent log
-    debugLog(
-      'handler_entry',
-      {
-        hasApiKey: Boolean(process.env.OPENAI_API_KEY),
-        modelEnv: process.env.OPENAI_MODEL || null,
-      },
-      'H1'
-    )
-    // #endregion
 
     if (!process.env.OPENAI_API_KEY) {
-      // #region agent log
-      debugLog('missing_openai_key', { error: 'OPENAI_API_KEY missing' }, 'H1')
-      // #endregion
       return NextResponse.json(
         { error: 'Missing OpenAI configuration' },
         { status: 500 }
@@ -98,9 +65,6 @@ ${context ? `Context: ${JSON.stringify(context)}` : ''}
 
 Generate a tracking plan for this goal.`
 
-    // #region agent log
-    debugLog('openai_request', { model }, 'H2')
-    // #endregion
 
     const completion = await openai.chat.completions.create({
       model,
@@ -130,19 +94,9 @@ Generate a tracking plan for this goal.`
       )
     }
 
-    // #region agent log
-    debugLog('handler_success', { cadence: plan.cadence, leads: plan.leading_metrics?.length ?? 0 }, 'H2')
-    // #endregion
 
     return NextResponse.json({ plan })
   } catch (error: any) {
-    // #region agent log
-    debugLog(
-      'handler_error',
-      { message: error?.message || 'unknown', name: error?.name || 'Error' },
-      'H3'
-    )
-    // #endregion
     console.error('Error generating goal plan:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to generate goal plan' },

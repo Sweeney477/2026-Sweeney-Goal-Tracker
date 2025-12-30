@@ -13,21 +13,6 @@ export default async function GoalsPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // #region agent log
-  fetch('http://127.0.0.1:7245/ingest/d6aa76b2-a494-4e8c-b5eb-df8531eebc37', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: 'debug-session',
-      runId: 'pre-fix',
-      hypothesisId: 'A',
-      location: 'app/(app)/goals/page.tsx:entry',
-      message: 'GoalsPage entry',
-      data: { userPresent: !!user },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
 
   if (!user) {
     return null
@@ -39,38 +24,8 @@ export default async function GoalsPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
-  // #region agent log
-  fetch('http://127.0.0.1:7245/ingest/d6aa76b2-a494-4e8c-b5eb-df8531eebc37', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: 'debug-session',
-      runId: 'pre-fix',
-      hypothesisId: 'A',
-      location: 'app/(app)/goals/page.tsx:goals-fetched',
-      message: 'Goals fetched',
-      data: { count: goals?.length ?? 0, error: !!error },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
 
   if (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7245/ingest/d6aa76b2-a494-4e8c-b5eb-df8531eebc37', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: 'debug-session',
-        runId: 'pre-fix',
-        hypothesisId: 'B',
-        location: 'app/(app)/goals/page.tsx:goals-error',
-        message: 'Goals fetch error',
-        data: { error: error.message },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
     console.error('Error loading goals', error)
     return (
       <div className="min-h-screen p-4 md:p-8">
@@ -102,21 +57,6 @@ export default async function GoalsPage() {
   // Fetch goal plans for each goal
   const goalsWithPlans = await Promise.all(
     (goals || []).map(async (goal) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7245/ingest/d6aa76b2-a494-4e8c-b5eb-df8531eebc37', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'debug-session',
-          runId: 'pre-fix',
-          hypothesisId: 'C',
-          location: 'app/(app)/goals/page.tsx:goal-plan-loop',
-          message: 'Processing goal',
-          data: { goalId: goal.id },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {})
-      // #endregion
       const { data: plan, error: planError } = await supabase
         .from('goal_plans')
         .select('*')
@@ -133,21 +73,6 @@ export default async function GoalsPage() {
     })
   )
 
-  // #region agent log
-  fetch('http://127.0.0.1:7245/ingest/d6aa76b2-a494-4e8c-b5eb-df8531eebc37', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: 'debug-session',
-      runId: 'pre-fix',
-      hypothesisId: 'C',
-      location: 'app/(app)/goals/page.tsx:plans-ready',
-      message: 'Goal plans resolved',
-      data: { goalsWithPlans: goalsWithPlans.length },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
 
   return (
     <div className="min-h-screen p-4 md:p-8">
