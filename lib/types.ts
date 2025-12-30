@@ -1,14 +1,14 @@
 export interface Profile {
   id: string
   user_id: string
-  timezone?: string
-  units?: 'metric' | 'imperial'
-  calorie_goal?: number
-  step_goal?: number
-  coding_goal_minutes?: number
-  onboarding_completed_at?: string
+  timezone?: string | null
+  units?: 'metric' | 'imperial' | null
+  calorie_goal?: number | null
+  step_goal?: number | null
+  coding_goal_minutes?: number | null
+  onboarding_completed_at?: string | null
   created_at: string
-  updated_at?: string
+  updated_at?: string | null
 }
 
 export interface Goal {

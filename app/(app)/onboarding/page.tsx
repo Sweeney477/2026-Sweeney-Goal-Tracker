@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,7 @@ import { toast } from '@/components/ui/toast'
 type Step = 'units' | 'goals' | 'complete'
 
 export default function OnboardingPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -25,44 +25,47 @@ export default function OnboardingPage() {
   const [codingGoal, setCodingGoal] = useState('240')
 
   useEffect(() => {
-    checkOnboardingStatus()
-  }, [])
+    const checkOnboardingStatus = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/auth/login')
+          return
+        }
 
-  const checkOnboardingStatus = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
-        return
+        // Select the fields we may use to pre-fill the onboarding UI.
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select(
+            'onboarding_completed_at, units, timezone, calorie_goal, step_goal, coding_goal_minutes'
+          )
+          .eq('user_id', user.id)
+          .single()
+
+        if (profile?.onboarding_completed_at) {
+          router.push('/dashboard')
+          return
+        }
+
+        // Pre-fill with existing profile data if available
+        if (profile) {
+          if (profile.units) setUnits(profile.units)
+          if (profile.timezone) setTimezone(profile.timezone)
+          if (profile.calorie_goal) setCalorieGoal(String(profile.calorie_goal))
+          if (profile.step_goal) setStepGoal(String(profile.step_goal))
+          if (profile.coding_goal_minutes) setCodingGoal(String(profile.coding_goal_minutes))
+        }
+      } catch (err) {
+        console.error('Error checking onboarding:', err)
+      } finally {
+        setLoading(false)
       }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('onboarding_completed_at')
-        .eq('user_id', user.id)
-        .single()
-
-      if (profile?.onboarding_completed_at) {
-        router.push('/dashboard')
-        return
-      }
-
-      // Pre-fill with existing profile data if available
-      if (profile) {
-        if (profile.units) setUnits(profile.units)
-        if (profile.timezone) setTimezone(profile.timezone)
-        if (profile.calorie_goal) setCalorieGoal(String(profile.calorie_goal))
-        if (profile.step_goal) setStepGoal(String(profile.step_goal))
-        if (profile.coding_goal_minutes) setCodingGoal(String(profile.coding_goal_minutes))
-      }
-    } catch (err) {
-      console.error('Error checking onboarding:', err)
-    } finally {
-      setLoading(false)
     }
-  }
+
+    void checkOnboardingStatus()
+  }, [router, supabase])
 
   const handleNext = async () => {
     if (step === 'units') {
