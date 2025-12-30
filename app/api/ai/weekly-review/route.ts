@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
 import { WeeklyReview } from '@/lib/types'
+import { checkRateLimit, recordRateLimit } from '@/lib/ai/rateLimit'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -16,6 +17,26 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Check rate limit
+    const rateLimit = await checkRateLimit(user.id, 'weekly-review')
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded. Please try again later.',
+          retryAfter: rateLimit.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfter || 60),
+            'X-RateLimit-Limit': '5',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimit.resetAt.toISOString(),
+          },
+        }
+      )
     }
 
     const body = await request.json()
@@ -131,7 +152,19 @@ Generate a weekly review based on this data.`
       )
     }
 
-    return NextResponse.json({ review })
+    // Record successful request
+    await recordRateLimit(user.id, 'weekly-review')
+
+    return NextResponse.json(
+      { review },
+      {
+        headers: {
+          'X-RateLimit-Limit': '5',
+          'X-RateLimit-Remaining': String(rateLimit.remaining - 1),
+          'X-RateLimit-Reset': rateLimit.resetAt.toISOString(),
+        },
+      }
+    )
   } catch (error: any) {
     console.error('Error generating weekly review:', error)
     return NextResponse.json(

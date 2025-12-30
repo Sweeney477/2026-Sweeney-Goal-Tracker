@@ -1,13 +1,16 @@
 'use client'
 
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { Flame, Pencil, Sparkles, ChevronRight } from 'lucide-react'
+import { toast } from '@/components/ui/toast'
 
 type TileType = 'weight' | 'steps' | 'food' | 'workout' | 'code'
 
@@ -63,6 +66,7 @@ export default function CheckInsPage() {
   const [loading, setLoading] = useState(true)
   const [savingTile, setSavingTile] = useState<TileType | null>(null)
   const [activeTile, setActiveTile] = useState<TileType | null>(null)
+  const [displayName, setDisplayName] = useState('Alex')
 
   const [suggestions, setSuggestions] = useState({
     weight: '',
@@ -90,6 +94,7 @@ export default function CheckInsPage() {
     code: '—',
   })
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     void loadData()
   }, [])
@@ -101,6 +106,11 @@ export default function CheckInsPage() {
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) return
+      const nameFromEmail = (user.email || '')
+        .split('@')[0]
+        .split(/[.\-_]/)
+        .filter(Boolean)[0]
+      setDisplayName(user.user_metadata?.full_name || (nameFromEmail ? nameFromEmail[0].toUpperCase() + nameFromEmail.slice(1) : 'Alex'))
 
       const [{ data: checkinData }, { data: mealData }, { data: projectData }] = await Promise.all([
         supabase
@@ -313,19 +323,72 @@ export default function CheckInsPage() {
 
       setActiveTile(null)
       void loadData()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving check-in:', error)
-      alert('Failed to save. Please try again.')
+      toast(error.message || 'Failed to save. Please try again.', 'error')
     } finally {
       setSavingTile(null)
     }
   }
 
-  const tileList: TileType[] = ['weight', 'steps', 'food', 'workout', 'code']
-
   const recentActivity = useMemo(
     () => checkins.slice(0, 15).map((c) => ({ ...c, displayDate: format(new Date(c.date), 'MMM d') })),
     [checkins]
+  )
+
+  const todayTypes = useMemo(() => {
+    const todays = checkins.filter((c) => c.date === today)
+    const set = new Set<string>(todays.map((c) => c.type))
+    return set
+  }, [checkins, today])
+
+  const focusTiles: TileType[] = ['weight', 'steps', 'workout', 'code']
+  const doneToday = focusTiles.filter((t) => {
+    if (t === 'food') return false
+    if (t === 'code') return todayTypes.has('coding_minutes')
+    return todayTypes.has(t)
+  }).length
+  const focusPct = Math.round((doneToday / focusTiles.length) * 100)
+
+  const streak = useMemo(() => {
+    const weightDates = checkins
+      .filter((c) => c.type === 'weight')
+      .map((c) => c.date)
+      .sort()
+      .reverse()
+    if (weightDates.length === 0) return 0
+    let s = 0
+    let currentDate = new Date(today)
+    for (const dateStr of weightDates) {
+      if (format(currentDate, 'yyyy-MM-dd') === dateStr) {
+        s++
+        currentDate.setDate(currentDate.getDate() - 1)
+      } else {
+        break
+      }
+    }
+    return s
+  }, [checkins, today])
+
+  const ProgressRing = ({ value }: { value: number }) => (
+    <svg width="56" height="56" viewBox="0 0 56 56" className="shrink-0">
+      <circle cx="28" cy="28" r="22" stroke="rgba(255,255,255,0.25)" strokeWidth="6" fill="none" />
+      <circle
+        cx="28"
+        cy="28"
+        r="22"
+        stroke="white"
+        strokeWidth="6"
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray={`${2 * Math.PI * 22}`}
+        strokeDashoffset={`${2 * Math.PI * 22 * (1 - Math.max(0, Math.min(100, value)) / 100)}`}
+        transform="rotate(-90 28 28)"
+      />
+      <text x="28" y="32" textAnchor="middle" fontSize="12" fill="white" fontWeight="700">
+        {value}%
+      </text>
+    </svg>
   )
 
   const renderForm = () => {
@@ -556,98 +619,148 @@ export default function CheckInsPage() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6">
+    <div className="space-y-4">
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Daily check-in</h1>
-          <p className="text-muted-foreground mt-1">
-            One tap → quick input → done. Prefilled with your latest data.
-          </p>
+          <div className="text-lg font-semibold">Hello, {displayName}!</div>
+          <div className="text-sm text-muted-foreground">Ready to crush today&apos;s goals?</div>
         </div>
+        <div className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
+          <span className="inline-flex items-center gap-2">
+            <Flame className="h-4 w-4" /> {streak} Day Streak
+          </span>
+        </div>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Today’s tiles</CardTitle>
-            <CardDescription>Tap a tile to log in seconds.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-              {tileList.map((tile) => (
-                <button
-                  key={tile}
-                  onClick={() => setActiveTile(tile)}
-                  className={cn(
-                    'group relative overflow-hidden rounded-lg border p-4 text-left transition hover:shadow-sm',
-                    activeTile === tile ? 'border-primary ring-2 ring-primary/30' : 'border-border'
-                  )}
-                >
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div>{format(new Date(), 'MMM d, EEEE')}</div>
+        <button type="button" className="inline-flex items-center gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm font-medium">
+          <Pencil className="h-4 w-4" />
+          Edit
+        </button>
+      </div>
+
+      {/* Momentum hero */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-blue-500 p-5 text-white shadow-sm">
+        <div className="text-xs font-semibold tracking-wide opacity-90">DAILY WIN</div>
+        <div className="mt-2 text-2xl font-semibold">Keep the momentum!</div>
+        <div className="mt-2 max-w-[22rem] text-sm opacity-90">
+          Complete all check-ins to unlock a special daily achievement animation.
+        </div>
+        <div className="mt-4 flex items-center justify-between">
+          <div className="rounded-2xl bg-white/15 px-4 py-3 text-sm font-semibold">
+            {doneToday}/{focusTiles.length} done
+          </div>
+          <ProgressRing value={focusPct} />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-1">
+        <div className="text-xs font-semibold tracking-wide text-muted-foreground">TODAY&apos;S FOCUS</div>
+        <button type="button" className="text-sm font-medium text-blue-600">
+          Edit
+        </button>
+      </div>
+
+      {/* Focus tiles */}
+      <div className="grid grid-cols-2 gap-3">
+        {focusTiles.map((tile) => {
+          const isDone =
+            tile === 'code' ? todayTypes.has('coding_minutes') : todayTypes.has(tile)
+          return (
+            <button
+              key={tile}
+              onClick={() => setActiveTile(tile)}
+              className={cn(
+                'relative overflow-hidden rounded-3xl border bg-background p-4 text-left shadow-sm',
+                activeTile === tile ? 'border-blue-600/40 ring-2 ring-blue-600/20' : ''
+              )}
+            >
+              <div className={cn('absolute inset-0 bg-gradient-to-br opacity-60', tileMeta[tile].accent)} />
+              <div className="relative">
+                <div className="flex items-start justify-between">
+                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-background/70">
+                    <Sparkles className="h-5 w-5 text-muted-foreground" />
+                  </div>
                   <div
                     className={cn(
-                      'absolute inset-0 bg-gradient-to-br opacity-60 transition group-hover:opacity-100',
-                      tileMeta[tile].accent
+                      'grid h-7 w-7 place-items-center rounded-full border bg-background/70',
+                      isDone ? 'text-emerald-600 border-emerald-600/30' : 'text-muted-foreground'
                     )}
-                  />
-                  <div className="relative space-y-2">
-                    <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                      {tileMeta[tile].label}
-                    </div>
-                    <div className="text-2xl font-bold">
-                      {lastValues[tile] || '—'}
-              </div>
-                    <div className="text-xs text-muted-foreground">
-                      {tileMeta[tile].helper}
-              </div>
-              </div>
-                </button>
-              ))}
-              </div>
-          </CardContent>
-        </Card>
-
-        {activeTile && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick log: {tileMeta[activeTile].label}</CardTitle>
-              <CardDescription>Defaults are pre-filled from your latest entries.</CardDescription>
-            </CardHeader>
-            <CardContent>{renderForm()}</CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent activity</CardTitle>
-            <CardDescription>Today + latest check-ins across all types.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-muted-foreground text-sm">Loading…</div>
-            ) : recentActivity.length === 0 ? (
-              <div className="text-muted-foreground text-sm">No check-ins yet.</div>
-            ) : (
-              <div className="space-y-2">
-                {recentActivity.map((checkin) => (
-                  <div
-                    key={checkin.id}
-                    className="flex items-center justify-between rounded-lg border p-3"
                   >
-                    <div>
-                      <div className="text-sm font-medium capitalize">{checkin.type.replace('_', ' ')}</div>
-                      <div className="text-xs text-muted-foreground">{checkin.displayDate}</div>
+                    {isDone ? '✓' : ''}
+                  </div>
+                </div>
+                <div className="mt-4 text-sm font-semibold">{tileMeta[tile].label}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{lastValues[tile] || '—'}</div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Food quick log as secondary */}
+      <button
+        type="button"
+        onClick={() => setActiveTile('food')}
+        className={cn(
+          'flex items-center justify-between rounded-3xl border bg-background p-4 shadow-sm',
+          activeTile === 'food' ? 'border-blue-600/40 ring-2 ring-blue-600/20' : ''
+        )}
+      >
+        <div>
+          <div className="text-sm font-semibold">Food</div>
+          <div className="text-xs text-muted-foreground">{lastValues.food || 'Quick log a meal'}</div>
+        </div>
+        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+      </button>
+
+      {activeTile && (
+        <div className="rounded-3xl border bg-background p-4 shadow-sm">
+          <div className="mb-3 text-sm font-semibold">Quick log: {tileMeta[activeTile].label}</div>
+          {renderForm()}
+        </div>
+      )}
+
+      {/* Recent activity */}
+      <div className="pt-2">
+        <div className="text-xs font-semibold tracking-wide text-muted-foreground">RECENT ACTIVITY</div>
+        <div className="mt-3 rounded-3xl border bg-background p-4 shadow-sm">
+          {loading ? (
+            <div className="text-sm text-muted-foreground">Loading…</div>
+          ) : recentActivity.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No check-ins yet.</div>
+          ) : (
+            <div className="relative pl-4">
+              <div className="absolute left-2 top-1 h-full w-px bg-border" />
+              <div className="space-y-4">
+                {recentActivity.map((checkin) => (
+                  <div key={checkin.id} className="relative">
+                    <div className="absolute -left-[2px] top-1 grid h-3 w-3 place-items-center rounded-full bg-blue-600" />
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold capitalize">
+                          {checkin.type.replace('_', ' ')}{' '}
+                          <span className="ml-2 text-xs text-muted-foreground">{checkin.displayDate}</span>
+                        </div>
+                        {checkin.notes && (
+                          <div className="truncate text-xs text-muted-foreground">{checkin.notes}</div>
+                        )}
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                      {checkin.value_json?.value || checkin.value_json?.type || '—'}{' '}
-                      {checkin.type === 'weight' && 'lbs'}
-                      {checkin.type === 'steps' && 'steps'}
-                      {checkin.type === 'calories' && 'cal'}
-                      {checkin.type === 'coding_minutes' && 'min'}
+                      <div className="shrink-0 text-sm text-muted-foreground">
+                        {checkin.value_json?.value || checkin.value_json?.type || '—'}{' '}
+                        {checkin.type === 'weight' && 'lbs'}
+                        {checkin.type === 'steps' && 'steps'}
+                        {checkin.type === 'calories' && 'cal'}
+                        {checkin.type === 'coding_minutes' && 'min'}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
 import { TrackingPlan } from '@/lib/types'
-
+import { checkRateLimit, recordRateLimit } from '@/lib/ai/rateLimit'
 
 export async function POST(request: NextRequest) {
   try {
-
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
         { error: 'Missing OpenAI configuration' },
@@ -25,6 +24,26 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Check rate limit
+    const rateLimit = await checkRateLimit(user.id, 'goal-plan')
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded. Please try again later.',
+          retryAfter: rateLimit.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfter || 60),
+            'X-RateLimit-Limit': '10',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimit.resetAt.toISOString(),
+          },
+        }
+      )
     }
 
     const body = await request.json()
@@ -94,8 +113,19 @@ Generate a tracking plan for this goal.`
       )
     }
 
+    // Record successful request
+    await recordRateLimit(user.id, 'goal-plan')
 
-    return NextResponse.json({ plan })
+    return NextResponse.json(
+      { plan },
+      {
+        headers: {
+          'X-RateLimit-Limit': '10',
+          'X-RateLimit-Remaining': String(rateLimit.remaining - 1),
+          'X-RateLimit-Reset': rateLimit.resetAt.toISOString(),
+        },
+      }
+    )
   } catch (error: any) {
     console.error('Error generating goal plan:', error)
     return NextResponse.json(

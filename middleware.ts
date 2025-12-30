@@ -54,7 +54,43 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  // Handle onboarding redirect for authenticated users
+  if (user) {
+    const pathname = request.nextUrl.pathname
+    const isOnboardingPage = pathname === '/onboarding'
+    const isAuthPage = pathname.startsWith('/auth/')
+
+    if (!isOnboardingPage && !isAuthPage) {
+      // Check if user has completed onboarding
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_completed_at')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!profile?.onboarding_completed_at) {
+        // Redirect to onboarding if not completed
+        return NextResponse.redirect(new URL('/onboarding', request.url))
+      }
+    }
+
+    // If user is on onboarding page but already completed, redirect to dashboard
+    if (isOnboardingPage) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_completed_at')
+        .eq('user_id', user.id)
+        .single()
+
+      if (profile?.onboarding_completed_at) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+    }
+  }
 
   return response
 }

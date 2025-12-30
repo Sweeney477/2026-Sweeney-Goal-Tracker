@@ -3,6 +3,10 @@ export interface Profile {
   user_id: string
   timezone?: string
   units?: 'metric' | 'imperial'
+  calorie_goal?: number
+  step_goal?: number
+  coding_goal_minutes?: number
+  onboarding_completed_at?: string
   created_at: string
   updated_at?: string
 }
@@ -115,6 +119,13 @@ export interface ExerciseLibrary {
   updated_at?: string
 }
 
+export interface ProjectMilestone {
+  id: string
+  label: string
+  completed: boolean
+  completed_at?: string
+}
+
 export interface Project {
   id: string
   user_id: string
@@ -123,6 +134,7 @@ export interface Project {
   status: 'planning' | 'in_progress' | 'shipped' | 'paused'
   definition_of_done?: string
   links_json?: Record<string, string>
+  milestones_json?: ProjectMilestone[]
   shipped_at?: string
   created_at: string
   updated_at?: string

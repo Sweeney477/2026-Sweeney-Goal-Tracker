@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { GoalPlanDisplay } from '@/components/goal-plan-display'
 import { TrackingPlan } from '@/lib/types'
+import { toast } from '@/components/ui/toast'
 
 export default function NewGoalPage() {
   const router = useRouter()
@@ -38,9 +39,14 @@ export default function NewGoalPage() {
 
       const data = await response.json()
       setPlan(data.plan)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating plan:', error)
-      alert('Failed to generate plan. Please try again.')
+      const errorMessage = error.message || 'Failed to generate plan. Please try again.'
+      if (errorMessage.includes('Rate limit')) {
+        toast('Rate limit exceeded. Please try again later.', 'error')
+      } else {
+        toast(errorMessage, 'error')
+      }
     } finally {
       setGeneratingPlan(false)
     }

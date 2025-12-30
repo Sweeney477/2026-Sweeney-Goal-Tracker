@@ -1,14 +1,17 @@
 'use client'
 
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { useEffect, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
 import { ExerciseLibrary, Workout, WorkoutVolume } from '@/lib/types'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Plus, X } from 'lucide-react'
+import { toast } from '@/components/ui/toast'
 
 type EditableSet = {
   weight: string
@@ -68,11 +71,13 @@ export default function WorkoutsPage() {
   const [libraryRecents, setLibraryRecents] = useState<ExerciseLibrary[]>([])
   const [libraryLoading, setLibraryLoading] = useState(false)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadWorkoutForDate(date)
     loadRecentWorkouts()
   }, [])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const timeout = setTimeout(() => {
       void loadLibrary(searchTerm)
@@ -388,241 +393,260 @@ export default function WorkoutsPage() {
       }
 
       loadRecentWorkouts()
-      alert('Workout saved')
-    } catch (error) {
+      toast('Workout saved', 'success')
+    } catch (error: any) {
       console.error('Error saving workout:', error)
-      alert('Failed to save workout. Please try again.')
+      toast(error.message || 'Failed to save workout. Please try again.', 'error')
     } finally {
       setSaving(false)
     }
   }
 
   const renderExerciseCard = (exercise: EditableExercise, exerciseIndex: number) => (
-    <div key={`${exercise.name}-${exerciseIndex}`} className="border rounded-lg p-4 space-y-3">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="space-y-1">
-            <Label>Name</Label>
-            <Input
-              value={exercise.name}
-              onChange={(e) => updateExerciseField(exerciseIndex, 'name', e.target.value)}
-              placeholder="e.g., Bench Press"
-            />
+    <div key={`${exercise.name}-${exerciseIndex}`} className="rounded-3xl border bg-background p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-50 text-blue-700">✕</div>
+            <div className="min-w-0">
+              <Input
+                value={exercise.name}
+                onChange={(e) => updateExerciseField(exerciseIndex, 'name', e.target.value)}
+                placeholder="Exercise name"
+                className="h-auto border-0 bg-transparent p-0 text-base font-semibold focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+              <div className="mt-1 flex flex-wrap gap-2">
+                {exercise.liftType ? (
+                  <Badge variant="secondary" className="rounded-full">
+                    {exercise.liftType}
+                  </Badge>
+                ) : null}
+                {exercise.equipment ? (
+                  <Badge variant="secondary" className="rounded-full">
+                    {exercise.equipment}
+                  </Badge>
+                ) : null}
+                {exercise.libraryId ? (
+                  <Badge variant="secondary" className="rounded-full">
+                    Library
+                  </Badge>
+                ) : null}
+              </div>
+            </div>
           </div>
-          <div className="space-y-1">
-            <Label>Lift type</Label>
-            <Input
-              value={exercise.liftType}
-              onChange={(e) => updateExerciseField(exerciseIndex, 'liftType', e.target.value)}
-              placeholder="Compound, Accessory…"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label>Equipment</Label>
-            <Input
-              value={exercise.equipment}
-              onChange={(e) => updateExerciseField(exerciseIndex, 'equipment', e.target.value)}
-              placeholder="Barbell, Dumbbell, Machine…"
-            />
+
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold text-muted-foreground">Lift type</Label>
+              <Input
+                value={exercise.liftType}
+                onChange={(e) => updateExerciseField(exerciseIndex, 'liftType', e.target.value)}
+                placeholder="Strength"
+                className="h-11 rounded-2xl"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold text-muted-foreground">Equipment</Label>
+              <Input
+                value={exercise.equipment}
+                onChange={(e) => updateExerciseField(exerciseIndex, 'equipment', e.target.value)}
+                placeholder="Barbell"
+                className="h-11 rounded-2xl"
+              />
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {exercise.libraryId && <Badge variant="secondary">Library</Badge>}
-          <Button variant="ghost" size="sm" onClick={() => removeExercise(exerciseIndex)}>
-            Remove
-          </Button>
-        </div>
+
+        <Button variant="ghost" size="icon" className="rounded-2xl" onClick={() => removeExercise(exerciseIndex)}>
+          <X className="h-5 w-5 text-muted-foreground" />
+        </Button>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 text-xs font-medium text-muted-foreground">
-        <div>Weight</div>
-        <div>Reps</div>
-        <div>RPE</div>
-        <div>Notes</div>
-      </div>
-      <div className="space-y-2">
-        {exercise.sets.map((set, setIndex) => (
-          <div key={setIndex} className="grid grid-cols-4 gap-2">
-            <Input
-              type="number"
-              inputMode="decimal"
-              value={set.weight}
-              onChange={(e) => updateSetField(exerciseIndex, setIndex, 'weight', e.target.value)}
-              placeholder="lbs"
-            />
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={set.reps}
-              onChange={(e) => updateSetField(exerciseIndex, setIndex, 'reps', e.target.value)}
-              placeholder="Reps"
-            />
-            <Input
-              type="number"
-              inputMode="decimal"
-              value={set.rpe}
-              onChange={(e) => updateSetField(exerciseIndex, setIndex, 'rpe', e.target.value)}
-              placeholder="RPE"
-            />
-            <Input
-              value={set.notes}
-              onChange={(e) => updateSetField(exerciseIndex, setIndex, 'notes', e.target.value)}
-              placeholder="Notes"
-            />
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={() => addSet(exerciseIndex)}>
-          + Set
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={exercise.sets.length === 0}
-          onClick={() => copyLastSet(exerciseIndex)}
-        >
-          Copy last set
-        </Button>
+      <div className="mt-4">
+        <div className="grid grid-cols-[44px_1fr_1fr_44px] gap-2 text-[11px] font-semibold text-muted-foreground">
+          <div>SET</div>
+          <div>WT</div>
+          <div>REPS</div>
+          <div className="text-center">DONE</div>
+        </div>
+        <div className="mt-2 space-y-2">
+          {exercise.sets.map((set, setIndex) => (
+            <div key={setIndex} className="grid grid-cols-[44px_1fr_1fr_44px] items-center gap-2">
+              <div className="grid h-10 w-10 place-items-center rounded-full bg-muted text-sm font-semibold text-muted-foreground">
+                {setIndex + 1}
+              </div>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={set.weight}
+                onChange={(e) => updateSetField(exerciseIndex, setIndex, 'weight', e.target.value)}
+                placeholder="kg/lb"
+                className="h-10 rounded-2xl"
+              />
+              <Input
+                type="number"
+                inputMode="numeric"
+                value={set.reps}
+                onChange={(e) => updateSetField(exerciseIndex, setIndex, 'reps', e.target.value)}
+                placeholder="—"
+                className="h-10 rounded-2xl"
+              />
+              <div className="grid place-items-center">
+                <input type="checkbox" className="h-5 w-5 accent-blue-600" aria-label="Done" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-3 flex gap-2">
+          <Button variant="outline" className="rounded-2xl" onClick={() => addSet(exerciseIndex)}>
+            + Add set
+          </Button>
+          <Button
+            variant="ghost"
+            className="rounded-2xl"
+            disabled={exercise.sets.length === 0}
+            onClick={() => copyLastSet(exerciseIndex)}
+          >
+            Copy last set
+          </Button>
+        </div>
       </div>
     </div>
   )
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Workout Builder</h1>
-          <p className="text-muted-foreground mt-1">
-            Build a session, add exercises and sets, then save to your log.
-          </p>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-3xl font-semibold">Workout Builder</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Design your session for today.</p>
+      </div>
+
+      <div className="rounded-3xl border bg-background p-4 shadow-sm">
+        <div className="grid grid-cols-1 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="title" className="text-xs font-semibold text-muted-foreground">
+              WORKOUT NAME
+            </Label>
+            <Input
+              id="title"
+              value={workoutTitle}
+              onChange={(e) => setWorkoutTitle(e.target.value)}
+              placeholder="e.g., Upper Body Power"
+              className="h-12 rounded-2xl"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="date" className="text-xs font-semibold text-muted-foreground">
+                DATE
+              </Label>
+              <Input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setDate(value)
+                  loadWorkoutForDate(value)
+                }}
+                className="h-12 rounded-2xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="duration" className="text-xs font-semibold text-muted-foreground">
+                DURATION (MIN)
+              </Label>
+              <Input
+                id="duration"
+                type="number"
+                inputMode="numeric"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                placeholder="45"
+                className="h-12 rounded-2xl"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="text-lg font-semibold">Exercises</div>
+        <Button variant="outline" className="rounded-2xl" onClick={() => setPickerOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Exercise
+        </Button>
+      </div>
+
+      {loadingBuilder ? (
+        <div className="text-sm text-muted-foreground">Loading session…</div>
+      ) : exercises.length === 0 ? (
+        <div className="rounded-3xl border border-dashed bg-background p-6 text-center text-sm text-muted-foreground shadow-sm">
+          No exercises yet. Tap &ldquo;Add Exercise&rdquo; to start building.
+        </div>
+      ) : (
+        <div className="space-y-3">{exercises.map((exercise, index) => renderExerciseCard(exercise, index))}</div>
+      )}
+
+      <div className="flex gap-3">
+        <Button
+          variant="outline"
+          className="h-12 flex-1 rounded-2xl"
+          onClick={() => {
+            resetBuilder()
+            setExercises([])
+          }}
+        >
+          Reset
+        </Button>
+        <Button
+          className="h-12 flex-[2] rounded-2xl bg-blue-600 text-white hover:bg-blue-600/90"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? 'Saving…' : workoutId ? 'Update workout' : 'Save Workout'}
+        </Button>
+      </div>
+
+      <div className="pt-2">
+        <div className="flex items-center justify-between">
+          <div className="text-lg font-semibold">Recent History</div>
+          <button type="button" className="text-sm font-medium text-muted-foreground">
+            View All
+          </button>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Session details</CardTitle>
-            <CardDescription>Pick a day, name the workout, then build the sets.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={date}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    setDate(value)
-                    loadWorkoutForDate(value)
-                  }}
-                  />
-                </div>
-                <div className="space-y-2">
-                <Label htmlFor="title">Workout name</Label>
-                  <Input
-                  id="title"
-                  value={workoutTitle}
-                  onChange={(e) => setWorkoutTitle(e.target.value)}
-                  placeholder="e.g., Upper Body"
-                />
-              </div>
-                <div className="space-y-2">
-                  <Label htmlFor="duration">Duration (minutes)</Label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    inputMode="numeric"
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                    placeholder="Optional"
-                  />
-                </div>
+        <div className="mt-3 space-y-3">
+          {recentWorkouts.length === 0 ? (
+            <div className="rounded-3xl border bg-background p-5 text-center text-sm text-muted-foreground shadow-sm">
+              No workouts logged yet.
             </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes (optional)</Label>
-              <textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add context, PRs, or how it felt…"
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <div className="text-lg font-semibold">Exercises</div>
-                <p className="text-sm text-muted-foreground">
-                  Add movements, enter sets, and copy the last set when repeating.
-                </p>
-              </div>
-              <Button variant="outline" onClick={() => setPickerOpen(true)}>
-                + Exercise
-              </Button>
-            </div>
-
-            {loadingBuilder ? (
-              <div className="text-muted-foreground">Loading session…</div>
-            ) : exercises.length === 0 ? (
-              <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground">
-                No exercises yet. Click &ldquo;+ Exercise&rdquo; to start building this workout.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {exercises.map((exercise, index) => renderExerciseCard(exercise, index))}
-              </div>
-            )}
-
-            <div className="flex items-center justify-end gap-3">
-              <Button variant="outline" onClick={() => setExercises([])}>
-                Clear exercises
-              </Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving…' : workoutId ? 'Update workout' : 'Save workout'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent workouts</CardTitle>
-            <CardDescription>Latest saved sessions with volume attached.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentWorkouts.length === 0 ? (
-              <div className="text-muted-foreground">No workouts logged yet.</div>
-            ) : (
-              <div className="space-y-3">
-                {recentWorkouts.map((workout) => {
-                  const volume = (workout.volume_json as WorkoutVolume | null) || null
-                  const exerciseCount = volume?.exercises?.length || 0
-                  return (
-                  <div key={workout.id} className="p-3 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{workout.workout_type}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {format(new Date(workout.date), 'MMM d, yyyy')}
-                        </div>
-                      </div>
-                        <div className="text-sm text-muted-foreground text-right">
-                          {exerciseCount > 0 ? `${exerciseCount} exercises` : 'No volume logged'}
-                          {workout.duration_min ? <div>{workout.duration_min} min</div> : null}
-                        </div>
+          ) : (
+            recentWorkouts.map((workout) => {
+              const volume = (workout.volume_json as WorkoutVolume | null) || null
+              const exerciseCount = volume?.exercises?.length || 0
+              return (
+                <div key={workout.id} className="rounded-3xl border bg-background p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-base font-semibold">{workout.workout_type}</div>
+                      <div className="text-sm text-muted-foreground">{format(new Date(workout.date), 'MMM d, yyyy')}</div>
                     </div>
-                    {workout.notes && (
-                      <div className="text-sm text-muted-foreground mt-1">{workout.notes}</div>
-                    )}
+                    <div className="text-right text-sm text-muted-foreground">
+                      <div>{exerciseCount > 0 ? `${exerciseCount} exercises` : 'No volume logged'}</div>
+                      {workout.duration_min ? <div>{workout.duration_min} min</div> : null}
+                    </div>
                   </div>
-                  )
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  {workout.notes ? (
+                    <div className="mt-2 text-sm text-muted-foreground">{workout.notes}</div>
+                  ) : null}
+                </div>
+              )
+            })
+          )}
+        </div>
       </div>
 
       {pickerOpen && (
