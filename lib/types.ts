@@ -39,6 +39,14 @@ export interface TrackingPlan {
   minimum_viable_day?: string
   weekly_review_prompt?: string
   reminder_suggestions?: string[]
+  milestones?: TrackingMilestone[]
+}
+
+export interface TrackingMilestone {
+  title: string
+  timeframe?: string
+  actions?: string[]
+  success_criteria?: string
 }
 
 export interface Checkin {

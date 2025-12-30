@@ -57,6 +57,35 @@ export function GoalPlanDisplay({ plan }: GoalPlanDisplayProps) {
             <div className="text-muted-foreground">{plan.minimum_viable_day}</div>
           </div>
         )}
+        {plan.milestones && plan.milestones.length > 0 && (
+          <div>
+            <div className="text-sm font-medium mb-2">Milestones</div>
+            <div className="space-y-3">
+              {plan.milestones.map((m, idx) => (
+                <div key={idx} className="rounded-lg border bg-background/60 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-medium">{m.title}</div>
+                    {m.timeframe && (
+                      <Badge variant="outline">{m.timeframe}</Badge>
+                    )}
+                  </div>
+                  {m.actions && m.actions.length > 0 && (
+                    <ul className="mt-2 list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      {m.actions.map((a, aIdx) => (
+                        <li key={aIdx}>{a}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {m.success_criteria && (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">Success:</span> {m.success_criteria}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {plan.reminder_suggestions && plan.reminder_suggestions.length > 0 && (
           <div>
             <div className="text-sm font-medium mb-2">Reminder Suggestions</div>
