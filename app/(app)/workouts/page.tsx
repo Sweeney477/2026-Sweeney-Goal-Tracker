@@ -165,7 +165,7 @@ export default function WorkoutsPage() {
         .select('*')
         .eq('user_id', user.id)
         .order('is_favorite', { ascending: false })
-        .order('last_used_at', { ascending: false, nullsLast: true })
+        .order('last_used_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(50)
 

@@ -194,7 +194,7 @@ export default function PhotosPage() {
               <div className="text-muted-foreground">No photos yet</div>
             ) : (
               <div className="space-y-6">
-                {Object.entries(photosByDate)
+                {(Object.entries(photosByDate) as [string, PhotoWithUrl[]][])
                   .sort((a, b) => b[0].localeCompare(a[0]))
                   .map(([date, datePhotos]) => (
                     <div key={date}>
