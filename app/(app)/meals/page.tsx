@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import Image from 'next/image'
 import { format } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
 import { Meal } from '@/lib/types'
@@ -30,11 +31,7 @@ export default function MealsPage() {
   const [file, setFile] = useState<File | null>(null)
   const [estimate, setEstimate] = useState<Record<string, any> | null>(null)
 
-  useEffect(() => {
-    loadMeals()
-  }, [])
-
-  const loadMeals = async () => {
+  const loadMeals = useCallback(async () => {
     try {
       const {
         data: { user },
@@ -69,7 +66,11 @@ export default function MealsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    void loadMeals()
+  }, [loadMeals])
 
   const fileToDataUrl = (inputFile: File) =>
     new Promise<string>((resolve, reject) => {
@@ -336,9 +337,11 @@ export default function MealsPage() {
                       <div className="text-sm text-muted-foreground">{meal.notes}</div>
                     )}
                     {meal.signedUrl && (
-                      <img
+                      <Image
                         src={meal.signedUrl}
                         alt={meal.name || 'Meal photo'}
+                        width={1200}
+                        height={600}
                         className="w-full h-48 object-cover rounded-lg border"
                       />
                     )}
@@ -352,5 +355,6 @@ export default function MealsPage() {
     </div>
   )
 }
+
 
 

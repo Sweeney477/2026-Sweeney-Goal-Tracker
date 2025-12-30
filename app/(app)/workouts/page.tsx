@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
 import { ExerciseLibrary, Workout, WorkoutVolume } from '@/lib/types'
@@ -68,18 +68,6 @@ export default function WorkoutsPage() {
   const [libraryRecents, setLibraryRecents] = useState<ExerciseLibrary[]>([])
   const [libraryLoading, setLibraryLoading] = useState(false)
 
-  useEffect(() => {
-    loadWorkoutForDate(date)
-    loadRecentWorkouts()
-  }, [])
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      void loadLibrary(searchTerm)
-    }, 200)
-    return () => clearTimeout(timeout)
-  }, [searchTerm])
-
   const resetBuilder = () => {
     setWorkoutId(null)
     setWorkoutTitle('Workout')
@@ -88,7 +76,7 @@ export default function WorkoutsPage() {
     setExercises([])
   }
 
-  const loadWorkoutForDate = async (selectedDate: string) => {
+  const loadWorkoutForDate = useCallback(async (selectedDate: string) => {
     const requestId = ++workoutRequestRef.current
     setLoadingBuilder(true)
     try {
@@ -128,9 +116,9 @@ export default function WorkoutsPage() {
         setLoadingBuilder(false)
       }
     }
-  }
+  }, [supabase])
 
-  const loadRecentWorkouts = async () => {
+  const loadRecentWorkouts = useCallback(async () => {
     try {
       const {
         data: { user },
@@ -149,9 +137,9 @@ export default function WorkoutsPage() {
     } catch (error) {
       console.error('Error loading recent workouts:', error)
     }
-  }
+  }, [supabase])
 
-  const loadLibrary = async (term: string) => {
+  const loadLibrary = useCallback(async (term: string) => {
     const requestId = ++libraryRequestRef.current
     setLibraryLoading(true)
     try {
@@ -195,7 +183,35 @@ export default function WorkoutsPage() {
         setLibraryLoading(false)
       }
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/d6aa76b2-a494-4e8c-b5eb-df8531eebc37', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'pre-fix',
+        hypothesisId: 'H3',
+        location: 'app/(app)/workouts/page.tsx:useEffect-init',
+        message: 'workouts init effect fired',
+        data: { date, workoutRequestRef: workoutRequestRef.current },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+    // #endregion
+
+    loadWorkoutForDate(date)
+    loadRecentWorkouts()
+  }, [date, loadRecentWorkouts, loadWorkoutForDate])
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      void loadLibrary(searchTerm)
+    }, 200)
+    return () => clearTimeout(timeout)
+  }, [loadLibrary, searchTerm])
 
   const addExercise = (exercise: EditableExercise) => {
     setExercises((prev) => [...prev, exercise])

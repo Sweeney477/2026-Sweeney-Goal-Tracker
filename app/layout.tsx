@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 
@@ -8,17 +8,18 @@ export const metadata: Metadata = {
   title: "2026 Personal Tracker",
   description: "A personal operating system for tracking goals, fitness, and projects",
   manifest: "/manifest.webmanifest",
-  themeColor: "#ffffff",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "2026 Personal Tracker",
   },
+}
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 export default function RootLayout({
@@ -32,4 +33,5 @@ export default function RootLayout({
     </html>
   )
 }
+
 

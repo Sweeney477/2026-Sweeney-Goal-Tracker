@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -90,11 +90,7 @@ export default function CheckInsPage() {
     code: '—',
   })
 
-  useEffect(() => {
-    void loadData()
-  }, [])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
       const {
@@ -225,7 +221,11 @@ export default function CheckInsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase, today])
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
 
   const handleQuickSubmit = async (tile: TileType) => {
     setSavingTile(tile)

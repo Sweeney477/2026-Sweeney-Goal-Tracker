@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,11 +23,7 @@ export default function PhotosPage() {
   const [formNotes, setFormNotes] = useState('')
   const [file, setFile] = useState<File | null>(null)
 
-  useEffect(() => {
-    loadPhotos()
-  }, [])
-
-  const loadPhotos = async () => {
+  const loadPhotos = useCallback(async () => {
     try {
       const {
         data: { user },
@@ -59,7 +56,11 @@ export default function PhotosPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    void loadPhotos()
+  }, [loadPhotos])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -205,9 +206,11 @@ export default function PhotosPage() {
                         {datePhotos.map((photo) => (
                           <div key={photo.id} className="space-y-2">
                             {photo.signedUrl ? (
-                              <img
+                              <Image
                                 src={photo.signedUrl}
                                 alt={`${photo.kind} view`}
+                                width={1200}
+                                height={800}
                                 className="w-full h-48 object-cover rounded-lg border"
                               />
                             ) : (

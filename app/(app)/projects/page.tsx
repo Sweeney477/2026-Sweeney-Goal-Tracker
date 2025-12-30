@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,11 +22,7 @@ export default function ProjectsPage() {
   const [formDoD, setFormDoD] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    loadProjects()
-  }, [])
-
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     try {
       const {
         data: { user },
@@ -48,7 +44,11 @@ export default function ProjectsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    void loadProjects()
+  }, [loadProjects])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -290,4 +290,5 @@ export default function ProjectsPage() {
     </div>
   )
 }
+
 

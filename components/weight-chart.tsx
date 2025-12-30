@@ -50,3 +50,4 @@ export function WeightChart({ data }: WeightChartProps) {
   )
 }
 
+

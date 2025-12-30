@@ -253,3 +253,4 @@ CREATE TRIGGER update_goals_updated_at BEFORE UPDATE ON goals
 CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+
