@@ -80,14 +80,14 @@ OPENAI_MODEL=gpt-4-turbo-preview
 npm run dev
 ```
 
-7. Open [http://localhost:3000](http://localhost:3000) in your browser
+7. Open [http://localhost:3000/goal](http://localhost:3000/goal) in your browser (this app is configured to run under the `/goal` base path)
 
 ### First Time Setup
 
-1. Sign up for an account at `/auth/login`
-2. Create your first goal at `/goals/new`
-3. Start logging check-ins at `/check-ins`
-4. Generate a weekly review at `/review`
+1. Sign up for an account at `/goal/auth/login`
+2. Create your first goal at `/goal/goals/new`
+3. Start logging check-ins at `/goal/check-ins`
+4. Generate a weekly review at `/goal/review`
 
 ## Project Structure
 

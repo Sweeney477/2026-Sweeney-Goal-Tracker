@@ -11,6 +11,8 @@ import { GoalPlanDisplay } from '@/components/goal-plan-display'
 import { TrackingPlan } from '@/lib/types'
 import { toast } from '@/components/ui/toast'
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
+
 export default function NewGoalPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -27,7 +29,7 @@ export default function NewGoalPage() {
 
     setGeneratingPlan(true)
     try {
-      const response = await fetch('/api/ai/goal-plan', {
+      const response = await fetch(`${BASE_PATH}/api/ai/goal-plan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ goalText }),

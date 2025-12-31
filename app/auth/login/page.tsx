@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Apple, Mail, Lock, Chrome } from 'lucide-react'
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -23,7 +25,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}${BASE_PATH}/auth/callback`,
         },
       })
       if (error) throw error
@@ -45,7 +47,7 @@ export default function LoginPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailRedirectTo: `${window.location.origin}${BASE_PATH}/auth/callback`,
           },
         })
         if (error) throw error
@@ -56,7 +58,7 @@ export default function LoginPage() {
           password,
         })
         if (error) throw error
-        window.location.href = '/dashboard'
+        window.location.href = `${BASE_PATH}/dashboard`
       }
     } catch (error: any) {
       setMessage(error.message)

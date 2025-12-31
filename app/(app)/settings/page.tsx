@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Settings, Save, Loader2, Download, Trash2, AlertTriangle } from 'lucide-react'
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
+
 export default function SettingsPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
@@ -90,7 +92,7 @@ export default function SettingsPage() {
   const handleExport = async () => {
     setExporting(true)
     try {
-      const response = await fetch('/api/export')
+      const response = await fetch(`${BASE_PATH}/api/export`)
       if (!response.ok) throw new Error('Export failed')
 
       const data = await response.json()
@@ -121,7 +123,7 @@ export default function SettingsPage() {
 
     setDeleting(true)
     try {
-      const response = await fetch('/api/delete-account', {
+      const response = await fetch(`${BASE_PATH}/api/delete-account`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ confirm: deleteConfirm }),
@@ -133,7 +135,7 @@ export default function SettingsPage() {
       }
 
       // Redirect to login
-      window.location.href = '/auth/login'
+      window.location.href = `${BASE_PATH}/auth/login`
     } catch (err: any) {
       setError(err.message || 'Failed to delete account')
       setDeleting(false)

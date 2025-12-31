@@ -21,6 +21,8 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
+
 const primaryItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/goals', label: 'Goals', icon: Target },
@@ -37,10 +39,15 @@ const secondaryItems = [
 ] as const
 
 export function Nav() {
-  const pathname = usePathname()
+  const rawPathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const [moreOpen, setMoreOpen] = useState(false)
+
+  const pathname =
+    rawPathname && BASE_PATH && rawPathname.startsWith(BASE_PATH)
+      ? rawPathname.slice(BASE_PATH.length) || '/'
+      : rawPathname
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()

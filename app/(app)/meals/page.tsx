@@ -15,6 +15,7 @@ import { toast } from '@/components/ui/toast'
 type MealWithUrl = Meal & { signedUrl?: string | null }
 
 const defaultDateTime = () => format(new Date(), "yyyy-MM-dd'T'HH:mm")
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
 
 export default function MealsPage() {
   const supabase = createClient()
@@ -144,7 +145,7 @@ export default function MealsPage() {
     setEstimating(true)
     try {
       const base64 = await fileToDataUrl(file)
-      const res = await fetch('/api/ai/meal-estimate', {
+      const res = await fetch(`${BASE_PATH}/api/ai/meal-estimate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: base64 }),

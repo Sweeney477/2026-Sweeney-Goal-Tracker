@@ -8,6 +8,8 @@ import { Sparkles, ChevronRight, Flame, Crown, Loader2 } from 'lucide-react'
 import { format, startOfWeek, addDays } from 'date-fns'
 import { toast } from '@/components/ui/toast'
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
+
 export default function ReviewPage() {
   const [review, setReview] = useState<WeeklyReview | null>(null)
   const [loading, setLoading] = useState(false)
@@ -17,7 +19,7 @@ export default function ReviewPage() {
     setLoading(true)
     setReview(null) // Clear previous review while generating
     try {
-      const response = await fetch('/api/ai/weekly-review', {
+      const response = await fetch(`${BASE_PATH}/api/ai/weekly-review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ days }),

@@ -1,6 +1,8 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '/goal'
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
@@ -61,8 +63,10 @@ export async function middleware(request: NextRequest) {
   // Handle onboarding redirect for authenticated users
   if (user) {
     const pathname = request.nextUrl.pathname
-    const isOnboardingPage = pathname === '/onboarding'
-    const isAuthPage = pathname.startsWith('/auth/')
+    const path =
+      pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) || '/' : pathname
+    const isOnboardingPage = path === '/onboarding'
+    const isAuthPage = path.startsWith('/auth/')
 
     if (!isOnboardingPage && !isAuthPage) {
       // Check if user has completed onboarding
@@ -74,7 +78,7 @@ export async function middleware(request: NextRequest) {
 
       if (!profile?.onboarding_completed_at) {
         // Redirect to onboarding if not completed
-        return NextResponse.redirect(new URL('/onboarding', request.url))
+        return NextResponse.redirect(new URL(`${BASE_PATH}/onboarding`, request.url))
       }
     }
 
@@ -87,7 +91,7 @@ export async function middleware(request: NextRequest) {
         .single()
 
       if (profile?.onboarding_completed_at) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+        return NextResponse.redirect(new URL(`${BASE_PATH}/dashboard`, request.url))
       }
     }
   }
@@ -97,7 +101,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Only run on app pages under the basePath; avoid Next internals and API routes.
+    '/goal',
+    '/goal/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
 
