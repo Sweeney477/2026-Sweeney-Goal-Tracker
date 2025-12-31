@@ -78,7 +78,9 @@ export async function middleware(request: NextRequest) {
 
       if (!profile?.onboarding_completed_at) {
         // Redirect to onboarding if not completed
-        return NextResponse.redirect(new URL(`${BASE_PATH}/onboarding`, request.url))
+        const url = request.nextUrl.clone()
+        url.pathname = `${BASE_PATH}/onboarding`
+        return NextResponse.redirect(url)
       }
     }
 
@@ -91,7 +93,9 @@ export async function middleware(request: NextRequest) {
         .single()
 
       if (profile?.onboarding_completed_at) {
-        return NextResponse.redirect(new URL(`${BASE_PATH}/dashboard`, request.url))
+        const url = request.nextUrl.clone()
+        url.pathname = `${BASE_PATH}/dashboard`
+        return NextResponse.redirect(url)
       }
     }
   }

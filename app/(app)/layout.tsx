@@ -4,8 +4,6 @@ import { Nav } from '@/components/nav'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Toaster } from '@/components/ui/toast'
 
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
-
 export default async function AppLayout({
   children,
 }: {
@@ -17,7 +15,8 @@ export default async function AppLayout({
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect(`${BASE_PATH}/auth/login`)
+    // Next.js automatically applies `basePath` to internal navigations.
+    redirect('/auth/login')
   }
 
   // Onboarding redirect is handled in middleware
