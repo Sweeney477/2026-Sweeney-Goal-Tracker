@@ -42,7 +42,7 @@ export default async function AppLayout({
               </div>
               <div className="leading-tight">
                 <div className="text-[15px] font-semibold">GoalTracker</div>
-                <div className="text-xs text-muted-foreground">Level up your daily habits.</div>
+                <div className="text-xs text-muted-foreground">Did you work out today?</div>
               </div>
             </div>
 

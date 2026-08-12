@@ -7,6 +7,9 @@ export interface Profile {
   step_goal?: number | null
   coding_goal_minutes?: number | null
   onboarding_completed_at?: string | null
+  workout_reminder_enabled?: boolean | null
+  workout_reminder_time?: string | null
+  workout_reminder_last_sent?: string | null
   created_at: string
   updated_at?: string | null
 }

@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
         supabase.from('goals').delete().eq('user_id', user.id),
         supabase.from('exercises_library').delete().eq('user_id', user.id),
         supabase.from('rate_limits').delete().eq('user_id', user.id),
+        supabase.from('push_subscriptions').delete().eq('user_id', user.id),
         supabase.from('profiles').delete().eq('user_id', user.id),
       ])
 

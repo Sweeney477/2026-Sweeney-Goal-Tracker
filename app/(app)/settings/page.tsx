@@ -6,9 +6,23 @@ import { Profile } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Settings, Save, Loader2, Download, Trash2, AlertTriangle } from 'lucide-react'
+import { Settings, Save, Loader2, Download, Trash2, AlertTriangle, Bell } from 'lucide-react'
+import {
+  pushSupported,
+  subscribeToWorkoutPush,
+  unsubscribeFromWorkoutPush,
+} from '@/lib/push-client'
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
+
+function snapToQuarterHour(value: string) {
+  const [hRaw, mRaw] = (value || '18:00').split(':')
+  const h = Math.min(23, Math.max(0, Number(hRaw) || 0))
+  const m = Number(mRaw) || 0
+  const snapped = Math.round(m / 15) * 15
+  if (snapped === 60) return `${String((h + 1) % 24).padStart(2, '0')}:00`
+  return `${String(h).padStart(2, '0')}:${String(snapped).padStart(2, '0')}`
+}
 
 export default function SettingsPage() {
   const supabase = createClient()
@@ -21,6 +35,7 @@ export default function SettingsPage() {
   const [deleting, setDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [reminderBusy, setReminderBusy] = useState(false)
 
   useEffect(() => {
     loadProfile()
@@ -70,6 +85,8 @@ export default function SettingsPage() {
         calorie_goal: profile.calorie_goal ? Number(profile.calorie_goal) : null,
         step_goal: profile.step_goal ? Number(profile.step_goal) : null,
         coding_goal_minutes: profile.coding_goal_minutes ? Number(profile.coding_goal_minutes) : null,
+        workout_reminder_enabled: Boolean(profile.workout_reminder_enabled),
+        workout_reminder_time: snapToQuarterHour(profile.workout_reminder_time || '18:00'),
       }
 
       const { error: updateError } = await supabase
@@ -86,6 +103,60 @@ export default function SettingsPage() {
       setError(err.message || 'Failed to save settings')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleToggleReminder = async (enabled: boolean) => {
+    setReminderBusy(true)
+    setError(null)
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      if (enabled) {
+        if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+          throw new Error(
+            'Push keys are not set on this deployment. Add NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, CRON_SECRET, and SUPABASE_SERVICE_ROLE_KEY.'
+          )
+        }
+        if (!pushSupported()) {
+          throw new Error(
+            'Install this app to your home screen (Add to Home Screen), then enable reminders from the installed app.'
+          )
+        }
+        await subscribeToWorkoutPush()
+      } else {
+        await unsubscribeFromWorkoutPush()
+      }
+
+      const time = snapToQuarterHour(profile.workout_reminder_time || '18:00')
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          workout_reminder_enabled: enabled,
+          workout_reminder_time: time,
+          timezone: profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+        })
+        .eq('user_id', user.id)
+
+      if (updateError) throw updateError
+
+      setProfile((prev) => ({
+        ...prev,
+        workout_reminder_enabled: enabled,
+        workout_reminder_time: time,
+        timezone: prev.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+      }))
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || 'Failed to update reminders')
+      setProfile((prev) => ({ ...prev, workout_reminder_enabled: !enabled }))
+    } finally {
+      setReminderBusy(false)
     }
   }
 
@@ -173,6 +244,56 @@ export default function SettingsPage() {
           Settings saved successfully!
         </div>
       )}
+
+      <div className="space-y-4 rounded-3xl border bg-background p-6 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-900 text-white">
+            <Bell className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">Workout reminders</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Push a Yes/No nudge at your chosen time if you haven&apos;t answered yet. This is what
+              makes the app interrupt you instead of relying on memory.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <Label htmlFor="workout_reminder_time" className="text-sm font-semibold">
+            Reminder time (local)
+          </Label>
+          <Input
+            id="workout_reminder_time"
+            type="time"
+            step={900}
+            value={snapToQuarterHour(profile.workout_reminder_time || '18:00')}
+            onChange={(e) =>
+              setProfile({ ...profile, workout_reminder_time: snapToQuarterHour(e.target.value) })
+            }
+            className="h-12 rounded-2xl"
+          />
+          <p className="text-xs text-muted-foreground">Uses 15-minute slots (e.g. 6:00, 6:15).</p>
+        </div>
+
+        <Button
+          type="button"
+          disabled={reminderBusy}
+          onClick={() => void handleToggleReminder(!profile.workout_reminder_enabled)}
+          className="h-12 w-full rounded-2xl bg-slate-900 text-white hover:bg-slate-900/90"
+        >
+          {reminderBusy ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Updating...
+            </>
+          ) : profile.workout_reminder_enabled ? (
+            'Disable daily nudge'
+          ) : (
+            'Enable daily nudge'
+          )}
+        </Button>
+      </div>
 
       <div className="space-y-6 rounded-3xl border bg-background p-6 shadow-sm">
         {/* Units */}

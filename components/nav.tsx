@@ -24,15 +24,15 @@ import { useMemo, useState } from 'react'
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
 
 const primaryItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/goals', label: 'Goals', icon: Target },
+  { href: '/dashboard', label: 'Today', icon: Home },
+  { href: '/workouts', label: 'Log', icon: Dumbbell },
   { href: '/check-ins', label: 'Check-ins', icon: CheckSquare },
-  { href: '/meals', label: 'Meals', icon: UtensilsCrossed },
-  { href: '/workouts', label: 'Workouts', icon: Dumbbell },
-  { href: '/photos', label: 'Photos', icon: Image },
 ] as const
 
 const secondaryItems = [
+  { href: '/goals', label: 'Goals', icon: Target },
+  { href: '/meals', label: 'Meals', icon: UtensilsCrossed },
+  { href: '/photos', label: 'Photos', icon: Image },
   { href: '/projects', label: 'Projects', icon: Code },
   { href: '/review', label: 'Review', icon: FileText },
   { href: '/settings', label: 'Settings', icon: Settings },
@@ -61,7 +61,6 @@ export function Nav() {
 
   return (
     <>
-      {/* Desktop sidebar */}
       <nav className="hidden md:fixed md:inset-y-0 md:left-0 md:z-30 md:flex md:w-64 md:flex-col md:border-r md:bg-background">
         <div className="flex flex-1 flex-col gap-1 p-3">
           {[...primaryItems, ...secondaryItems].map((item) => {
@@ -91,7 +90,6 @@ export function Nav() {
         </div>
       </nav>
 
-      {/* Mobile bottom tab bar */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70 md:hidden">
         <div className="mx-auto flex max-w-md items-center justify-between px-2 py-2">
           {primaryItems.map((item) => {
@@ -126,7 +124,6 @@ export function Nav() {
         </div>
       </nav>
 
-      {/* More sheet */}
       {moreOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <button

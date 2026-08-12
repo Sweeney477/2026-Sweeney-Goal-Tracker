@@ -51,10 +51,17 @@ Create a `.env.local` file in the root directory:
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 # OpenAI
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_MODEL=gpt-4-turbo-preview
+
+# Workout push reminders (generate with: npx web-push generate-vapid-keys)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key
+VAPID_PRIVATE_KEY=your_vapid_private_key
+VAPID_SUBJECT=mailto:you@example.com
+CRON_SECRET=a_long_random_string
 ```
 
 4. Set up Supabase database:
@@ -63,6 +70,7 @@ OPENAI_MODEL=gpt-4-turbo-preview
      - `supabase/migrations/001_initial_schema.sql`
      - `supabase/migrations/002_storage_bucket.sql`
      - `supabase/migrations/003_meals.sql`
+     - …through `008_workout_reminders.sql`
 
    Or use the Supabase CLI:
    ```bash
@@ -221,6 +229,11 @@ npm run lint
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon/public key | Yes |
 | `OPENAI_API_KEY` | Your OpenAI API key | Yes |
 | `OPENAI_MODEL` | OpenAI model to use (default: gpt-4-turbo-preview) | No |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key for reminder cron | Yes (for reminders) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push VAPID public key | Yes (for reminders) |
+| `VAPID_PRIVATE_KEY` | Web Push VAPID private key | Yes (for reminders) |
+| `VAPID_SUBJECT` | `mailto:` contact for VAPID | Yes (for reminders) |
+| `CRON_SECRET` | Bearer token for `/api/cron/workout-reminders` | Yes (for reminders) |
 
 ## Security Notes
 
