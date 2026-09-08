@@ -9,6 +9,16 @@ const withPWA = require("next-pwa")({
 const nextConfig = {
   reactStrictMode: true,
   basePath: '/goal',
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/goal',
+        permanent: false,
+        basePath: false,
+      },
+    ];
+  },
   env: {
     NEXT_PUBLIC_BASE_PATH: '/goal',
   },
@@ -24,4 +34,3 @@ const nextConfig = {
 };
 
 module.exports = withPWA(nextConfig);
-
