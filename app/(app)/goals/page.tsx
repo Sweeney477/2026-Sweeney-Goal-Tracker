@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Plus, Flame, Trophy, ChevronRight } from 'lucide-react'
 import { GoalPlanDisplay } from '@/components/goal-plan-display'
 import { format } from 'date-fns'
+import { computeGoalProgress } from '@/lib/goals/progress'
 
 export const dynamic = 'force-dynamic'
 
@@ -147,21 +148,7 @@ export default async function GoalsPage() {
           </div>
         ) : (
           goalsWithPlans.map((goal, idx) => {
-            const start = goal.start_date ? new Date(goal.start_date) : null
-            const end = goal.end_date ? new Date(goal.end_date) : null
-            let progress: number | null = null
-            if (start && end && end.getTime() > start.getTime()) {
-              const pct = Math.round(
-                Math.max(
-                  0,
-                  Math.min(
-                    100,
-                    ((new Date().getTime() - start.getTime()) / (end.getTime() - start.getTime())) * 100
-                  )
-                )
-              )
-              progress = pct
-            }
+            const progress = computeGoalProgress(goal, {})
 
             return (
               <div key={goal.id} className="rounded-3xl border bg-background p-4 shadow-sm">
@@ -178,17 +165,30 @@ export default async function GoalsPage() {
                           {goal.target ? ` • ${goal.target}` : ''}
                         </div>
                       </div>
-                      {progress != null && (
-                        <div className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
-                          {progress}%
+                      {progress.outcomePercent != null ? (
+                        <div className="rounded-full bg-brand/10 px-2 py-1 text-xs font-semibold text-brand">
+                          {progress.outcomePercent}% outcome
                         </div>
-                      )}
+                      ) : progress.timeElapsedPercent != null ? (
+                        <div className="rounded-full bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground">
+                          {progress.timeElapsedPercent}% time
+                        </div>
+                      ) : null}
                     </div>
 
-                    {progress != null && (
+                    {progress.outcomePercent != null ? (
                       <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
-                        <div className="h-full rounded-full bg-blue-600" style={{ width: `${progress}%` }} />
+                        <div className="h-full rounded-full bg-brand" style={{ width: `${progress.outcomePercent}%` }} />
                       </div>
+                    ) : progress.timeElapsedPercent != null ? (
+                      <div className="mt-3 space-y-1">
+                        <div className="text-xs text-muted-foreground">{progress.outcomeLabel}</div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                          <div className="h-full rounded-full bg-muted-foreground/40" style={{ width: `${progress.timeElapsedPercent}%` }} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3 text-xs text-muted-foreground">{progress.outcomeLabel}</div>
                     )}
 
                     {(goal.plan || goal.target) && (

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Flame, ScanLine, Plus, ChevronRight, Edit2, Trash2, X, Save } from 'lucide-react'
 import { toast } from '@/components/ui/toast'
+import { listRecentMeals, deleteMeal as deleteMealApi } from '@/lib/meals/api'
 
 type MealWithUrl = Meal & { signedUrl?: string | null }
 

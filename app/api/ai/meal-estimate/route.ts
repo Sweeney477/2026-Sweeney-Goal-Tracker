@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import OpenAI from 'openai'
+import { getOpenAI, defaultOpenAIModel } from '@/lib/ai/openai'
 import { checkRateLimit, recordRateLimit } from '@/lib/ai/rateLimit'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 // Maximum base64 image size: ~5MB (base64 is ~33% larger than binary)
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
@@ -64,7 +61,7 @@ export async function POST(request: NextRequest) {
       ? imageBase64
       : `data:image/jpeg;base64,${imageBase64}`
 
-    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini'
+    const model = defaultOpenAIModel('gpt-4o-mini')
 
     const systemPrompt = `You are a nutrition coach. Given a meal photo, return a conservative calorie and macro estimate as JSON:
 {
@@ -76,7 +73,7 @@ export async function POST(request: NextRequest) {
 }
 Use integers. When unsure, round down slightly.`
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model,
       messages: [
         { role: 'system', content: systemPrompt },

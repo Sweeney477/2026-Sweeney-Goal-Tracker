@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { Flame, Sparkles, ChevronRight } from 'lucide-react'
 import { toast } from '@/components/ui/toast'
-import { trackerFromQuery, focusTileIds } from '@/lib/config/trackers'
+import { trackerFromQuery, focusTileIds, trackerById, trackers } from '@/lib/config/trackers'
 import { normalizeUnits, weightUnitLabel, type UnitSystem } from '@/lib/units'
 import { calculateDailyStreak } from '@/lib/checkins/streak'
 import { LoadingState } from '@/components/loading-state'
@@ -26,6 +26,9 @@ type QuickInputs = {
   workout: { type: string; duration: string; notes: string }
   code: { minutes: string; project: string; notes: string }
 }
+
+const trackerLabel = (id: TileType) => trackerById(id)?.label ?? id
+const trackerHelper = (id: TileType) => trackerById(id)?.helper ?? ''
 
 const tileMeta: Record<
   TileType,

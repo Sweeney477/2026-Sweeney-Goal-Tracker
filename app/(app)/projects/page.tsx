@@ -13,16 +13,8 @@ import { toast } from '@/components/ui/toast'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { Project, ProjectMilestone } from '@/lib/types'
+import { DEFAULT_MILESTONES, listProjects } from '@/lib/projects/api'
 
-// Default milestones for new projects
-const DEFAULT_MILESTONES: Omit<ProjectMilestone, 'id'>[] = [
-  { label: 'Idea', completed: false },
-  { label: 'Prompt', completed: false },
-  { label: 'Creative Designed', completed: false },
-  { label: 'Coding', completed: false },
-  { label: 'Moved Online', completed: false },
-  { label: 'Test', completed: false },
-]
 
 export default function ProjectsPage() {
   const supabase = createClient()
@@ -53,12 +45,7 @@ export default function ProjectsPage() {
 
       if (!user) return
 
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('week_start', { ascending: false })
-        .limit(52)
+      const { data, error } = await listProjects(supabase, user.id)
 
       if (error) throw error
 

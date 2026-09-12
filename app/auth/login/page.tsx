@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -105,13 +106,12 @@ export default function LoginPage() {
                 <Label htmlFor="password" className="text-xs font-semibold tracking-wide text-muted-foreground">
                   Password
                 </Label>
-                <button
-                  type="button"
+                <Link
+                  href="/auth/forgot-password"
                   className="text-sm font-medium text-brand"
-                  onClick={() => setMessage('Password reset isn’t wired yet. (We can add it next.)')}
                 >
                   Forgot?
-                </button>
+                </Link>
               </div>
               <div className="mt-2 flex items-center gap-3 rounded-2xl border bg-background px-4 py-3">
                 <Lock className="h-5 w-5 text-muted-foreground" aria-hidden />

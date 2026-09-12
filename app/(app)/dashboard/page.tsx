@@ -6,8 +6,15 @@ import { WeightChart } from '@/components/weight-chart'
 import { EmptyState } from '@/components/empty-state'
 import { MetricTile } from '@/components/metric-tile'
 import { PageHeader } from '@/components/page-header'
+import { TodayChecklist } from '@/components/today-checklist'
 import { calculateDailyStreak } from '@/lib/checkins/streak'
-import { dashboardTrackers, streakTracker } from '@/lib/config/trackers'
+import { buildDailyWinChecklist } from '@/lib/checkins/domain'
+import { computeGoalProgress } from '@/lib/goals/progress'
+import {
+  dashboardTrackers,
+  streakTracker,
+  type QuickLogTileId,
+} from '@/lib/config/trackers'
 import { normalizeUnits, percentOfGoal, weightUnitLabel } from '@/lib/units'
 
 export default async function DashboardPage() {
@@ -22,50 +29,67 @@ export default async function DashboardPage() {
   const streakDef = streakTracker()
   const streakType = streakDef?.checkinType ?? 'weight'
 
-  const [{ data: todayCheckins }, { data: streakCheckins }, { data: latestWeight }, { data: weightData }, { data: goals }, { data: profile }] =
-    await Promise.all([
-      supabase.from('checkins').select('*').eq('user_id', user.id).eq('date', today),
-      supabase
-        .from('checkins')
-        .select('date')
-        .eq('user_id', user.id)
-        .eq('type', streakType)
-        .order('date', { ascending: false })
-        .limit(60),
-      supabase
-        .from('checkins')
-        .select('value_json')
-        .eq('user_id', user.id)
-        .eq('type', 'weight')
-        .order('date', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from('checkins')
-        .select('date, value_json')
-        .eq('user_id', user.id)
-        .eq('type', 'weight')
-        .gte('date', format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'))
-        .order('date', { ascending: true }),
-      supabase
-        .from('goals')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5),
-      supabase
-        .from('profiles')
-        .select('step_goal, coding_goal_minutes, calorie_goal, units')
-        .eq('user_id', user.id)
-        .maybeSingle(),
-    ])
+  const [
+    { data: todayCheckins },
+    { data: streakCheckins },
+    { data: latestWeight },
+    { data: weightData },
+    { data: recentCheckins },
+    { data: goals },
+    { data: profile },
+  ] = await Promise.all([
+    supabase.from('checkins').select('*').eq('user_id', user.id).eq('date', today),
+    supabase
+      .from('checkins')
+      .select('date')
+      .eq('user_id', user.id)
+      .eq('type', streakType)
+      .order('date', { ascending: false })
+      .limit(60),
+    supabase
+      .from('checkins')
+      .select('value_json')
+      .eq('user_id', user.id)
+      .eq('type', 'weight')
+      .order('date', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('checkins')
+      .select('date, value_json')
+      .eq('user_id', user.id)
+      .eq('type', 'weight')
+      .gte('date', format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'))
+      .order('date', { ascending: true }),
+    supabase
+      .from('checkins')
+      .select('type, value_json, date')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false })
+      .limit(40),
+    supabase
+      .from('goals')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5),
+    supabase
+      .from('profiles')
+      .select('step_goal, coding_goal_minutes, calorie_goal, units')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+  ])
 
   const units = normalizeUnits(profile?.units)
   const stepGoal = profile?.step_goal || 10000
   const codingGoal = profile?.coding_goal_minutes || 240
   const calorieGoal = profile?.calorie_goal || 2200
 
-  const streak = calculateDailyStreak((streakCheckins || []).map((c) => c.date), today)
+  const streak = calculateDailyStreak(
+    (streakCheckins || []).map((c) => c.date),
+    today
+  )
+  const checklist = buildDailyWinChecklist(todayCheckins || [], today)
 
   const chartData =
     weightData?.map((item) => ({
@@ -73,11 +97,25 @@ export default async function DashboardPage() {
       value: Number(item.value_json?.value) || 0,
     })) || []
 
-  const valueFor = (type: string) => todayCheckins?.find((c) => c.type === type)?.value_json?.value
+  const valueFor = (type: string) =>
+    todayCheckins?.find((c) => c.type === type)?.value_json?.value
   const latestWeightValue = latestWeight?.value_json?.value
   const stepsTodayValue = valueFor('steps')
   const caloriesTodayValue = valueFor('calories')
   const codingTodayValue = valueFor('coding_minutes')
+
+  const latestNumeric = (type: string) => {
+    const row = (recentCheckins || []).find((c) => c.type === type)
+    return row?.value_json?.value != null ? Number(row.value_json.value) : null
+  }
+
+  const latestByTracker: Partial<Record<QuickLogTileId, number | null>> = {
+    weight: latestWeightValue != null ? Number(latestWeightValue) : null,
+    steps: latestNumeric('steps'),
+    food: latestNumeric('calories'),
+    code: latestNumeric('coding_minutes'),
+    workout: (recentCheckins || []).some((c) => c.type === 'workout') ? 1 : null,
+  }
 
   const dashboardTiles = dashboardTrackers().map((tracker) => {
     if (tracker.id === 'weight') {
@@ -109,7 +147,10 @@ export default async function DashboardPage() {
         href: `/check-ins?type=food`,
         value: caloriesTodayValue ?? '—',
         unit: 'cal',
-        progress: caloriesTodayValue != null ? percentOfGoal(Number(caloriesTodayValue), calorieGoal) : undefined,
+        progress:
+          caloriesTodayValue != null
+            ? percentOfGoal(Number(caloriesTodayValue), calorieGoal)
+            : undefined,
         featured: false,
         icon: <Flame className="h-5 w-5 text-orange-600" />,
       }
@@ -123,34 +164,14 @@ export default async function DashboardPage() {
       progress: value != null ? percentOfGoal(value, codingGoal) : 0,
       featured: false,
       icon: <Code2 className="h-5 w-5 text-cyan-700" />,
-      done: value != null && value > 0,
     }
   })
 
-  const doneCount = dashboardTiles.filter((tile) => {
-    if (tile.tracker.id === 'weight') return latestWeightValue != null && latestWeightValue !== ''
-    if (tile.tracker.id === 'steps') return stepsTodayValue != null && Number(stepsTodayValue) > 0
-    if (tile.tracker.id === 'food') return caloriesTodayValue != null && Number(caloriesTodayValue) > 0
-    if (tile.tracker.id === 'code') return codingTodayValue != null && Number(codingTodayValue) > 0
-    return false
-  }).length
-
-  const percent = (value: number, max: number) => {
-    if (!max) return 0
-    return Math.max(0, Math.min(100, Math.round((value / max) * 100)))
-  }
-
-  const activeGoals =
-    (goals || []).map((goal) => {
-      const start = goal.start_date ? new Date(goal.start_date) : null
-      const end = goal.end_date ? new Date(goal.end_date) : null
-      const now = new Date()
-      let pct: number | null = null
-      if (start && end && end.getTime() > start.getTime()) {
-        pct = percent(now.getTime() - start.getTime(), end.getTime() - start.getTime())
-      }
-      return { ...goal, timeElapsedPercent: pct }
-    }) || []
+  const doneCount = checklist.filter((item) => item.done).length
+  const activeGoals = (goals || []).map((goal) => ({
+    ...goal,
+    progress: computeGoalProgress(goal, latestByTracker),
+  }))
 
   return (
     <div className="animate-fade-up space-y-4">
@@ -160,10 +181,12 @@ export default async function DashboardPage() {
         description="Log the day. Keep the streak."
         action={
           <div className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-            {doneCount}/{dashboardTiles.length} done
+            {doneCount}/{checklist.length} done
           </div>
         }
       />
+
+      <TodayChecklist items={checklist} />
 
       <div className="grid grid-cols-2 gap-3">
         {dashboardTiles.map((tile) => (
@@ -216,7 +239,9 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-semibold">Weight trend</div>
-            <div className="text-xs text-muted-foreground">Last 30 days · {weightUnitLabel(units)}</div>
+            <div className="text-xs text-muted-foreground">
+              Last 30 days · {weightUnitLabel(units)}
+            </div>
           </div>
           <Link href="/check-ins?type=weight" className="text-sm font-medium text-brand">
             Log
@@ -230,7 +255,9 @@ export default async function DashboardPage() {
       <div className="relative overflow-hidden rounded-3xl border bg-orange-50 p-5 shadow-sm dark:bg-orange-950/30">
         <div className="text-sm font-semibold">Current streak</div>
         <div className="text-xs text-muted-foreground">
-          {streakDef ? `Consecutive days with ${streakDef.label.toLowerCase()} logged` : 'Daily logging streak'}
+          {streakDef
+            ? `Consecutive days with ${streakDef.label.toLowerCase()} logged`
+            : 'Daily logging streak'}
         </div>
         <div className="mt-4 flex items-end gap-3">
           <div className="font-display text-5xl font-semibold text-orange-600">{streak}</div>
@@ -246,7 +273,9 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-semibold">Active goals</div>
-            <div className="text-xs text-muted-foreground">Time elapsed on current goals</div>
+            <div className="text-xs text-muted-foreground">
+              Outcome progress when linked; calendar time shown separately
+            </div>
           </div>
           <Link href="/goals" className="text-sm font-medium text-brand">
             View
@@ -270,19 +299,32 @@ export default async function DashboardPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold">{goal.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {goal.end_date ? format(new Date(goal.end_date), 'MMM d, yyyy') : goal.category}
-                    </div>
+                    <div className="text-xs text-muted-foreground">{goal.progress.outcomeLabel}</div>
                   </div>
-                  <div className="text-xs font-semibold text-muted-foreground">
-                    {goal.timeElapsedPercent != null ? `${goal.timeElapsedPercent}% time` : ''}
+                  <div className="text-right text-xs font-semibold text-muted-foreground">
+                    {goal.progress.outcomePercent != null ? (
+                      <div>{goal.progress.outcomePercent}% outcome</div>
+                    ) : null}
+                    {goal.progress.timeElapsedPercent != null ? (
+                      <div className="font-normal">{goal.progress.timeElapsedPercent}% time</div>
+                    ) : null}
                   </div>
                 </div>
-                {goal.timeElapsedPercent != null && (
+                {goal.progress.outcomePercent != null ? (
                   <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-brand" style={{ width: `${goal.timeElapsedPercent}%` }} />
+                    <div
+                      className="h-full rounded-full bg-brand"
+                      style={{ width: `${goal.progress.outcomePercent}%` }}
+                    />
                   </div>
-                )}
+                ) : goal.progress.timeElapsedPercent != null ? (
+                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-muted-foreground/40"
+                      style={{ width: `${goal.progress.timeElapsedPercent}%` }}
+                    />
+                  </div>
+                ) : null}
               </div>
             ))
           )}

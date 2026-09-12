@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Plus, X } from 'lucide-react'
 import { toast } from '@/components/ui/toast'
+import { listRecentWorkouts, listExerciseLibrary } from '@/lib/workouts/api'
 
 type EditableSet = {
   weight: string
