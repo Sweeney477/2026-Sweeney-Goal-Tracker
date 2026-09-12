@@ -17,26 +17,31 @@ Edit [`lib/config/modules.ts`](lib/config/modules.ts):
 - Set `nav` to `primary` | `secondary` | `none` to reshape the shell
 - Change `label` / `href` / `icon` as needed
 
+Disabled modules are omitted from nav and redirected to `/dashboard` by middleware.
+
 ## 3. Trackers (daily metrics)
 
 Edit [`lib/config/trackers.ts`](lib/config/trackers.ts):
 
 - Toggle `showOnDashboard` and `countsTowardDailyWin`
-- Rename labels/helpers
+- Rename `label` / `helper`
 - Adjust `queryAliases` used by `/check-ins?type=…` deep links
 - Pick which tracker is `streakEligible`
 
 Dashboard tiles, the Today checklist, and check-in deep links all read from this registry.
 
-## 4. Domain data helpers
+## 4. Domain hooks + feature modules
 
-Reusable query helpers live under:
+Logic lives in domain hooks; pages are thin composers:
 
-- [`lib/checkins/`](lib/checkins/)
-- [`lib/meals/api.ts`](lib/meals/api.ts)
-- [`lib/workouts/api.ts`](lib/workouts/api.ts)
-- [`lib/projects/api.ts`](lib/projects/api.ts)
-- [`lib/goals/progress.ts`](lib/goals/progress.ts)
+| Domain | Hook | View | Page |
+| --- | --- | --- | --- |
+| Check-ins | `lib/checkins/use-checkins.ts` | `components/check-ins/check-ins-view.tsx` | `app/(app)/check-ins/page.tsx` |
+| Workouts | `lib/workouts/use-workouts.ts` | `components/workouts/workouts-view.tsx` | `app/(app)/workouts/page.tsx` |
+| Meals | `lib/meals/use-meals.ts` | `components/meals/meals-view.tsx` | `app/(app)/meals/page.tsx` |
+| Projects | `lib/projects/use-projects.ts` | `components/projects/projects-view.tsx` | `app/(app)/projects/page.tsx` |
+
+Shared helpers: `lib/checkins/domain.ts`, `lib/*/api.ts`, `lib/goals/progress.ts`.
 
 Prefer extending these instead of growing page files.
 

@@ -1,5 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isModuleEnabled } from '@/lib/config/modules'
+import { moduleIdFromPath } from '@/lib/config/module-path'
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '/goal'
 
@@ -60,11 +62,20 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const pathname = request.nextUrl.pathname
+  const path =
+    pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) || '/' : pathname
+
+  // Disabled feature modules redirect to dashboard (config-driven forks).
+  const moduleId = moduleIdFromPath(path)
+  if (moduleId && moduleId !== 'dashboard' && !isModuleEnabled(moduleId)) {
+    const url = request.nextUrl.clone()
+    url.pathname = `${BASE_PATH}/dashboard`
+    return NextResponse.redirect(url)
+  }
+
   // Handle onboarding redirect for authenticated users
   if (user) {
-    const pathname = request.nextUrl.pathname
-    const path =
-      pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) || '/' : pathname
     const isOnboardingPage = path === '/onboarding'
     const isAuthPage = path.startsWith('/auth/')
 

@@ -18,11 +18,11 @@ A personal operating system for tracking goals, fitness, and projects. Built wit
 - **Framework**: Next.js 14 (App Router, TypeScript)
 - **Database**: Supabase (PostgreSQL with Row Level Security)
 - **Storage**: Supabase Storage (private photo storage)
-- **Authentication**: Supabase Auth
-- **AI**: OpenAI Responses API (GPT-4 Turbo)
+- **Authentication**: Supabase Auth (email/password, OAuth, password reset)
+- **AI**: OpenAI Chat Completions (`gpt-4o-mini` default via `OPENAI_MODEL`)
 - **UI**: Tailwind CSS + shadcn/ui
 - **Charts**: Recharts
-- **PWA**: next-pwa
+- **PWA**: `@ducanh2912/next-pwa` + `public/manifest.webmanifest`
 
 ## Getting Started
 
@@ -54,8 +54,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # OpenAI
 OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-4-turbo-preview
+OPENAI_MODEL=gpt-4o-mini
 ```
+
+For fork/brand/module configuration, see [`FORK.md`](FORK.md).
 
 4. Set up Supabase database:
    - In your Supabase dashboard, go to SQL Editor
@@ -220,7 +222,7 @@ npm run lint
 | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL | Yes |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon/public key | Yes |
 | `OPENAI_API_KEY` | Your OpenAI API key | Yes |
-| `OPENAI_MODEL` | OpenAI model to use (default: gpt-4-turbo-preview) | No |
+| `OPENAI_MODEL` | OpenAI model to use (default: gpt-4o-mini) | No |
 
 ## Security Notes
 

@@ -5,6 +5,7 @@ import { Plus, Flame, Trophy, ChevronRight } from 'lucide-react'
 import { GoalPlanDisplay } from '@/components/goal-plan-display'
 import { format } from 'date-fns'
 import { computeGoalProgress } from '@/lib/goals/progress'
+import { latestByTrackerFromCheckins } from '@/lib/goals/latest-readings'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,12 +52,17 @@ export default async function GoalsPage() {
   const level = Math.max(1, Math.floor(((checkinCount || 0) as number) / 25) + 1)
   const levelLabel = level >= 10 ? 'Master' : level >= 5 ? 'Builder' : 'Starter'
 
-  const { data: goals, error } = await supabase
-    .from('goals')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+  const [{ data: goals, error }, { data: recentCheckins }] = await Promise.all([
+    supabase.from('goals').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+    supabase
+      .from('checkins')
+      .select('type, value_json, date')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false })
+      .limit(40),
+  ])
 
+  const latestByTracker = latestByTrackerFromCheckins(recentCheckins)
 
   if (error) {
     console.error('Error loading goals', error)
@@ -148,7 +154,7 @@ export default async function GoalsPage() {
           </div>
         ) : (
           goalsWithPlans.map((goal, idx) => {
-            const progress = computeGoalProgress(goal, {})
+            const progress = computeGoalProgress(goal, latestByTracker)
 
             return (
               <div key={goal.id} className="rounded-3xl border bg-background p-4 shadow-sm">

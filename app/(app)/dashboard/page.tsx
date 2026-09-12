@@ -10,10 +10,10 @@ import { TodayChecklist } from '@/components/today-checklist'
 import { calculateDailyStreak } from '@/lib/checkins/streak'
 import { buildDailyWinChecklist } from '@/lib/checkins/domain'
 import { computeGoalProgress } from '@/lib/goals/progress'
+import { latestByTrackerFromCheckins } from '@/lib/goals/latest-readings'
 import {
   dashboardTrackers,
   streakTracker,
-  type QuickLogTileId,
 } from '@/lib/config/trackers'
 import { normalizeUnits, percentOfGoal, weightUnitLabel } from '@/lib/units'
 
@@ -104,17 +104,12 @@ export default async function DashboardPage() {
   const caloriesTodayValue = valueFor('calories')
   const codingTodayValue = valueFor('coding_minutes')
 
-  const latestNumeric = (type: string) => {
-    const row = (recentCheckins || []).find((c) => c.type === type)
-    return row?.value_json?.value != null ? Number(row.value_json.value) : null
-  }
-
-  const latestByTracker: Partial<Record<QuickLogTileId, number | null>> = {
-    weight: latestWeightValue != null ? Number(latestWeightValue) : null,
-    steps: latestNumeric('steps'),
-    food: latestNumeric('calories'),
-    code: latestNumeric('coding_minutes'),
-    workout: (recentCheckins || []).some((c) => c.type === 'workout') ? 1 : null,
+  const latestByTracker = {
+    ...latestByTrackerFromCheckins(recentCheckins),
+    weight:
+      latestWeightValue != null
+        ? Number(latestWeightValue)
+        : latestByTrackerFromCheckins(recentCheckins).weight ?? null,
   }
 
   const dashboardTiles = dashboardTrackers().map((tracker) => {
