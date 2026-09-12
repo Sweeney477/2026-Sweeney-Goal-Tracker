@@ -12,6 +12,23 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  const pathname = request.nextUrl.pathname
+  const path =
+    pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) || '/' : pathname
+
+  // Disabled feature modules redirect to dashboard (config-driven forks).
+  const moduleId = moduleIdFromPath(path)
+  if (moduleId && moduleId !== 'dashboard' && !isModuleEnabled(moduleId)) {
+    const url = request.nextUrl.clone()
+    url.pathname = `${BASE_PATH}/dashboard`
+    return NextResponse.redirect(url)
+  }
+
+  // Local visual-review / screenshot tours — skip live Supabase auth.
+  if (process.env.NEXT_PUBLIC_VISUAL_REVIEW === '1' || process.env.VISUAL_REVIEW === '1') {
+    return response
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -61,18 +78,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  const pathname = request.nextUrl.pathname
-  const path =
-    pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) || '/' : pathname
-
-  // Disabled feature modules redirect to dashboard (config-driven forks).
-  const moduleId = moduleIdFromPath(path)
-  if (moduleId && moduleId !== 'dashboard' && !isModuleEnabled(moduleId)) {
-    const url = request.nextUrl.clone()
-    url.pathname = `${BASE_PATH}/dashboard`
-    return NextResponse.redirect(url)
-  }
 
   // Handle onboarding redirect for authenticated users
   if (user) {

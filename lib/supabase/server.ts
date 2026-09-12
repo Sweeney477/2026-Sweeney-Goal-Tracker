@@ -1,7 +1,13 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { createVisualMockClient, isVisualReview } from '@/lib/supabase/visual-mock'
 
 export async function createClient() {
+  if (isVisualReview()) {
+    return createVisualMockClient() as unknown as SupabaseClient
+  }
+
   const cookieStore = await cookies()
 
   return createServerClient(
