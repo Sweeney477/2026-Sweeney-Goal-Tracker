@@ -3,14 +3,19 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { Flame, Pencil, Sparkles, ChevronRight } from 'lucide-react'
+import { Flame, Sparkles, ChevronRight } from 'lucide-react'
 import { toast } from '@/components/ui/toast'
+import { trackerFromQuery, focusTileIds } from '@/lib/config/trackers'
+import { normalizeUnits, weightUnitLabel, type UnitSystem } from '@/lib/units'
+import { calculateDailyStreak } from '@/lib/checkins/streak'
+import { LoadingState } from '@/components/loading-state'
 
 type TileType = 'weight' | 'steps' | 'food' | 'workout' | 'code'
 
@@ -67,6 +72,9 @@ export default function CheckInsPage() {
   const [savingTile, setSavingTile] = useState<TileType | null>(null)
   const [activeTile, setActiveTile] = useState<TileType | null>(null)
   const [displayName, setDisplayName] = useState('Alex')
+  const [units, setUnits] = useState<UnitSystem>('imperial')
+  const searchParams = useSearchParams()
+  const weightLabel = weightUnitLabel(units)
 
   const [suggestions, setSuggestions] = useState({
     weight: '',
@@ -99,6 +107,11 @@ export default function CheckInsPage() {
     void loadData()
   }, [])
 
+  useEffect(() => {
+    const fromQuery = trackerFromQuery(searchParams.get('type'))
+    if (fromQuery) setActiveTile(fromQuery)
+  }, [searchParams])
+
   const loadData = async () => {
     setLoading(true)
     try {
@@ -111,6 +124,15 @@ export default function CheckInsPage() {
         .split(/[.\-_]/)
         .filter(Boolean)[0]
       setDisplayName(user.user_metadata?.full_name || (nameFromEmail ? nameFromEmail[0].toUpperCase() + nameFromEmail.slice(1) : 'Alex'))
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('units')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      const nextUnits = normalizeUnits(profile?.units)
+      setUnits(nextUnits)
+      const unitLabel = weightUnitLabel(nextUnits)
 
       const [{ data: checkinData }, { data: mealData }, { data: projectData }] = await Promise.all([
         supabase
@@ -169,7 +191,7 @@ export default function CheckInsPage() {
       })
 
       setLastValues({
-        weight: latestWeight?.value_json?.value ? `${latestWeight.value_json.value} lbs` : '—',
+        weight: latestWeight?.value_json?.value ? `${latestWeight.value_json.value} ${unitLabel}` : '—',
         steps: stepsToday?.value_json?.value
           ? `${stepsToday.value_json.value} steps`
           : latestSteps?.value_json?.value
@@ -321,6 +343,7 @@ export default function CheckInsPage() {
       if (error) throw error
       }
 
+      toast('Saved', 'success')
       setActiveTile(null)
       void loadData()
     } catch (error: any) {
@@ -342,7 +365,7 @@ export default function CheckInsPage() {
     return set
   }, [checkins, today])
 
-  const focusTiles: TileType[] = ['weight', 'steps', 'workout', 'code']
+  const focusTiles = focusTileIds() as TileType[]
   const doneToday = focusTiles.filter((t) => {
     if (t === 'food') return false
     if (t === 'code') return todayTypes.has('coding_minutes')
@@ -351,23 +374,8 @@ export default function CheckInsPage() {
   const focusPct = Math.round((doneToday / focusTiles.length) * 100)
 
   const streak = useMemo(() => {
-    const weightDates = checkins
-      .filter((c) => c.type === 'weight')
-      .map((c) => c.date)
-      .sort()
-      .reverse()
-    if (weightDates.length === 0) return 0
-    let s = 0
-    let currentDate = new Date(today)
-    for (const dateStr of weightDates) {
-      if (format(currentDate, 'yyyy-MM-dd') === dateStr) {
-        s++
-        currentDate.setDate(currentDate.getDate() - 1)
-      } else {
-        break
-      }
-    }
-    return s
+    const weightDates = checkins.filter((c) => c.type === 'weight').map((c) => c.date)
+    return calculateDailyStreak(weightDates, today)
   }, [checkins, today])
 
   const ProgressRing = ({ value }: { value: number }) => (
@@ -399,7 +407,7 @@ export default function CheckInsPage() {
       return (
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>{activeTile === 'weight' ? 'Weight (lbs)' : 'Steps'}</Label>
+            <Label>{activeTile === 'weight' ? `Weight (${weightLabel})` : 'Steps'}</Label>
             <Input
               type="number"
               value={field.value}
@@ -631,14 +639,7 @@ export default function CheckInsPage() {
           </span>
         </div>
       </div>
-
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <div>{format(new Date(), 'MMM d, EEEE')}</div>
-        <button type="button" className="inline-flex items-center gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm font-medium">
-          <Pencil className="h-4 w-4" />
-          Edit
-        </button>
-      </div>
+      <div className="text-sm text-muted-foreground">{format(new Date(), 'MMM d, EEEE')}</div>
 
       {/* Momentum hero */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-blue-500 p-5 text-white shadow-sm">
@@ -654,13 +655,7 @@ export default function CheckInsPage() {
           <ProgressRing value={focusPct} />
         </div>
       </div>
-
-      <div className="flex items-center justify-between pt-1">
-        <div className="text-xs font-semibold tracking-wide text-muted-foreground">TODAY&apos;S FOCUS</div>
-        <button type="button" className="text-sm font-medium text-blue-600">
-          Edit
-        </button>
-      </div>
+      <div className="pt-1 text-xs font-semibold tracking-wide text-muted-foreground">TODAY&apos;S FOCUS</div>
 
       {/* Focus tiles */}
       <div className="grid grid-cols-2 gap-3">
@@ -727,7 +722,7 @@ export default function CheckInsPage() {
         <div className="text-xs font-semibold tracking-wide text-muted-foreground">RECENT ACTIVITY</div>
         <div className="mt-3 rounded-3xl border bg-background p-4 shadow-sm">
           {loading ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
+            <LoadingState label="Loading check-ins" />
           ) : recentActivity.length === 0 ? (
             <div className="text-sm text-muted-foreground">No check-ins yet.</div>
           ) : (
@@ -749,7 +744,7 @@ export default function CheckInsPage() {
                       </div>
                       <div className="shrink-0 text-sm text-muted-foreground">
                         {checkin.value_json?.value || checkin.value_json?.type || '—'}{' '}
-                        {checkin.type === 'weight' && 'lbs'}
+                        {checkin.type === 'weight' && weightLabel}
                         {checkin.type === 'steps' && 'steps'}
                         {checkin.type === 'calories' && 'cal'}
                         {checkin.type === 'coding_minutes' && 'min'}
