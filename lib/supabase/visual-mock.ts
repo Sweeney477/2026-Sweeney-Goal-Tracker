@@ -3,20 +3,23 @@
  * Enabled when NEXT_PUBLIC_VISUAL_REVIEW=1. Never enable in production.
  */
 
+import { localDayKey } from '@/lib/dates'
+
 const USER_ID = '00000000-0000-4000-8000-000000000001'
-const TODAY = new Date().toISOString().slice(0, 10)
+/** Fixture “today” follows profile timezone (America/New_York), not UTC. */
+const TODAY = localDayKey('America/New_York')
 
 function daysAgo(n: number) {
-  const d = new Date()
-  d.setDate(d.getDate() - n)
+  const d = new Date(`${TODAY}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() - n)
   return d.toISOString().slice(0, 10)
 }
 
 export const VISUAL_USER = {
   id: USER_ID,
-  email: 'demo@goaltracker.local',
+  email: 'stephen@goaltracker.local',
   app_metadata: {},
-  user_metadata: {},
+  user_metadata: { full_name: 'Stephen' },
   aud: 'authenticated',
   created_at: '2026-01-01T00:00:00.000Z',
 }

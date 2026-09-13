@@ -40,8 +40,8 @@ export const trackers: TrackerDef[] = [
     id: 'weight',
     checkinType: 'weight',
     label: 'Weight',
-    helper: 'Tap to log today’s weight',
-    accent: 'from-teal-500/10 to-teal-500/20',
+    helper: 'Log today’s weight',
+    accent: 'from-brand/10 to-brand/20',
     showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: true,
@@ -54,8 +54,8 @@ export const trackers: TrackerDef[] = [
     id: 'steps',
     checkinType: 'steps',
     label: 'Steps',
-    helper: 'Auto-fills with today’s steps if present',
-    accent: 'from-emerald-500/10 to-emerald-500/20',
+    helper: 'Log today’s steps',
+    accent: 'from-brand/10 to-brand/15',
     showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: false,
@@ -69,8 +69,8 @@ export const trackers: TrackerDef[] = [
     id: 'food',
     checkinType: 'calories',
     label: 'Food',
-    helper: 'Save a quick meal with calories & name',
-    accent: 'from-amber-500/10 to-amber-500/20',
+    helper: 'Log a meal with calories',
+    accent: 'from-brand/5 to-brand/15',
     showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: false,
@@ -83,9 +83,9 @@ export const trackers: TrackerDef[] = [
     id: 'workout',
     checkinType: 'workout',
     label: 'Workout',
-    helper: 'Remembers your last workout type',
-    accent: 'from-sky-500/10 to-sky-500/20',
-    showOnDashboard: false,
+    helper: 'Log today’s workout',
+    accent: 'from-brand/10 to-brand/20',
+    showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: false,
     queryAliases: ['workout'],
@@ -96,8 +96,8 @@ export const trackers: TrackerDef[] = [
     id: 'code',
     checkinType: 'coding_minutes',
     label: 'Coding',
-    helper: 'Quickly log coding minutes + project',
-    accent: 'from-cyan-500/10 to-cyan-500/20',
+    helper: 'Log coding minutes',
+    accent: 'from-brand/10 to-brand/20',
     showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: false,
@@ -137,6 +137,6 @@ export function trackerFromQuery(type: string | null | undefined): QuickLogTileI
 }
 
 export function focusTileIds(): QuickLogTileId[] {
-  // Primary focus grid excludes food (secondary quick-log), matching current UX
-  return trackers.filter((t) => t.countsTowardDailyWin && t.id !== 'food').map((t) => t.id)
+  // Match dashboard checklist / summary tiles
+  return trackers.filter((t) => t.countsTowardDailyWin).map((t) => t.id)
 }

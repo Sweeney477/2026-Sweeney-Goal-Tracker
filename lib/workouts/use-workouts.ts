@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { format } from 'date-fns'
+import { localDayKey, resolveTimezone } from '@/lib/dates'
 import { createClient } from '@/lib/supabase/client'
 import { ExerciseLibrary, Workout, WorkoutVolume } from '@/lib/types'
 import { toast } from '@/components/ui/toast'
@@ -25,13 +26,14 @@ import {
   toEditableExercises,
 } from '@/lib/workouts/types'
 
-const defaultDate = () => format(new Date(), 'yyyy-MM-dd')
+const defaultDate = (tz?: string) => localDayKey(resolveTimezone(tz))
 
 export function useWorkouts() {
   const supabase = createClient()
   const workoutRequestRef = useRef(0)
   const libraryRequestRef = useRef(0)
 
+  const [timeZone, setTimeZone] = useState(() => resolveTimezone())
   const [date, setDate] = useState(defaultDate())
   const [workoutTitle, setWorkoutTitle] = useState('Workout')
   const [duration, setDuration] = useState('')
@@ -48,6 +50,20 @@ export function useWorkouts() {
   const [searchTerm, setSearchTerm] = useState('')
   const [libraryResults, setLibraryResults] = useState<ExerciseLibrary[]>([])
   const [libraryFavorites, setLibraryFavorites] = useState<ExerciseLibrary[]>([])
+
+  useEffect(() => {
+    const loadTimezone = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: profile } = await supabase.from('profiles').select('timezone').eq('user_id', user.id).maybeSingle()
+        const tz = resolveTimezone(profile?.timezone)
+        setTimeZone(tz)
+        setDate((prev) => prev || defaultDate(tz))
+      } catch {}
+    }
+    void loadTimezone()
+  }, [])
   const [libraryRecents, setLibraryRecents] = useState<ExerciseLibrary[]>([])
   const [libraryLoading, setLibraryLoading] = useState(false)
 
@@ -352,6 +368,7 @@ export function useWorkouts() {
 
   return {
     date,
+    timeZone,
     selectDate,
     workoutTitle,
     setWorkoutTitle,

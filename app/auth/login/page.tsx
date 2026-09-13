@@ -197,7 +197,7 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">{brand.description}</p>
+        <p className="mt-6 text-center text-sm text-muted-foreground">Sign in to continue.</p>
       </div>
     </div>
   )

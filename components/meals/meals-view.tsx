@@ -4,9 +4,11 @@ import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Flame, ScanLine, Plus, ChevronRight, Edit2, Trash2, X, Save } from 'lucide-react'
+import { ScanLine, Plus, ChevronRight, Edit2, Trash2, X, Save } from 'lucide-react'
 import { toast } from '@/components/ui/toast'
 import { useMeals } from '@/lib/meals/use-meals'
+import { DayContext } from '@/components/day-context'
+import { LoadingState } from '@/components/loading-state'
 
 export function MealsView() {
   const {
@@ -17,6 +19,7 @@ export function MealsView() {
     estimating,
     hasMore,
     calorieGoal,
+    timeZone,
     caloriesToday,
     remaining,
     eatenPct,
@@ -47,32 +50,29 @@ export function MealsView() {
     handleDelete,
   } = useMeals()
 
+  if (loading) {
+    return <LoadingState label="Loading meals" variant="form" />
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-semibold">Meals</h1>
-        </div>
-        <div className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
-          <span className="inline-flex items-center gap-2">
-            <Flame className="h-4 w-4" /> {format(new Date(), 'd MMM')}
-          </span>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Meals</h1>
+          <DayContext timeZone={timeZone} className="mt-1" />
         </div>
       </div>
 
-      {/* Calories hero */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-blue-500 p-5 text-white shadow-sm">
-        <div className="text-sm opacity-90">Calories Remaining</div>
-        <div className="mt-1 text-5xl font-semibold">{remaining}</div>
-        <div className="mt-2 flex items-center justify-between text-sm opacity-90">
-          <div>{caloriesToday.toLocaleString()} Eaten</div>
-          <div>Goal: {calorieGoal.toLocaleString()}</div>
+      {/* Calories summary */}
+      <div className="relative overflow-hidden rounded-2xl border bg-brand p-5 text-brand-foreground">
+        <div className="text-sm text-brand-foreground/85">Calories remaining today</div>
+        <div className="mt-1 font-display text-4xl font-semibold tracking-tight">{remaining}</div>
+        <div className="mt-2 flex items-center justify-between text-sm text-brand-foreground/85">
+          <div>{caloriesToday.toLocaleString()} eaten</div>
+          <div>Goal {calorieGoal.toLocaleString()}</div>
         </div>
-        <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-white/20">
+        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
           <div className="h-full rounded-full bg-white" style={{ width: `${eatenPct}%` }} />
-        </div>
-        <div className="absolute right-4 top-4 grid h-12 w-12 place-items-center rounded-2xl bg-white/15">
-          <div className="h-6 w-6 rounded-full border border-white/40" />
         </div>
       </div>
 
@@ -97,7 +97,7 @@ export function MealsView() {
           {!editingMeal && (
             <button
               type="button"
-              className="inline-flex items-center gap-2 text-sm font-medium text-blue-600"
+              className="inline-flex items-center gap-2 text-sm font-medium text-brand"
               onClick={() => toast('Scanner coming soon — for now upload a photo for AI estimates.', 'info')}
             >
               <ScanLine className="h-4 w-4" />
@@ -244,7 +244,7 @@ export function MealsView() {
           <Button
             type="submit"
             disabled={submitting}
-            className="h-12 w-full rounded-2xl bg-slate-950 text-white hover:bg-slate-950/90"
+            className="h-11 w-full rounded-xl"
           >
             {editingMeal ? (
               <>

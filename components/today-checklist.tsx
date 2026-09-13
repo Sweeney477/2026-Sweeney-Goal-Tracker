@@ -14,10 +14,10 @@ export function TodayChecklist({ items, className }: TodayChecklistProps) {
   const done = items.filter((item) => item.done).length
 
   return (
-    <section className={cn('rounded-3xl border bg-background p-4 shadow-sm', className)}>
+    <section className={cn('rounded-2xl border bg-card p-4', className)}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold">Minimum viable day</div>
+          <div className="text-sm font-semibold">Today&apos;s checklist</div>
           <div className="text-xs text-muted-foreground">
             {done}/{items.length} leading metrics logged
           </div>
@@ -27,23 +27,21 @@ export function TodayChecklist({ items, className }: TodayChecklistProps) {
         </div>
       </div>
 
-      <ul className="mt-3 space-y-2">
+      <ul className="mt-3 divide-y divide-border/70">
         {items.map((item) => (
           <li key={item.id}>
             <Link
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-2xl border px-3 py-3 transition-colors',
-                item.done
-                  ? 'border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-950/20'
-                  : 'bg-muted/20 hover:bg-muted/40'
+                'flex items-center gap-3 px-1 py-3 transition-colors hover:bg-muted/40',
+                item.done && 'opacity-90'
               )}
             >
               <span
                 className={cn(
                   'grid h-7 w-7 place-items-center rounded-full border text-xs',
                   item.done
-                    ? 'border-emerald-600 bg-emerald-600 text-white'
+                    ? 'border-brand bg-brand text-brand-foreground'
                     : 'border-muted-foreground/30 text-muted-foreground'
                 )}
                 aria-hidden

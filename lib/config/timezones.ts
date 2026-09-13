@@ -1,0 +1,42 @@
+/** Common IANA timezones for Settings / onboarding searchable select. */
+export const COMMON_TIMEZONES: { value: string; label: string }[] = [
+  { value: 'Pacific/Honolulu', label: 'Hawaii (Honolulu)' },
+  { value: 'America/Anchorage', label: 'Alaska (Anchorage)' },
+  { value: 'America/Los_Angeles', label: 'Pacific (Los Angeles)' },
+  { value: 'America/Denver', label: 'Mountain (Denver)' },
+  { value: 'America/Phoenix', label: 'Arizona (Phoenix)' },
+  { value: 'America/Chicago', label: 'Central (Chicago)' },
+  { value: 'America/New_York', label: 'Eastern (New York)' },
+  { value: 'America/Toronto', label: 'Eastern (Toronto)' },
+  { value: 'America/Sao_Paulo', label: 'Brasília' },
+  { value: 'UTC', label: 'UTC' },
+  { value: 'Europe/London', label: 'London' },
+  { value: 'Europe/Dublin', label: 'Dublin' },
+  { value: 'Europe/Paris', label: 'Paris / Central Europe' },
+  { value: 'Europe/Berlin', label: 'Berlin' },
+  { value: 'Europe/Amsterdam', label: 'Amsterdam' },
+  { value: 'Europe/Madrid', label: 'Madrid' },
+  { value: 'Europe/Rome', label: 'Rome' },
+  { value: 'Europe/Stockholm', label: 'Stockholm' },
+  { value: 'Europe/Helsinki', label: 'Helsinki' },
+  { value: 'Europe/Athens', label: 'Athens' },
+  { value: 'Europe/Istanbul', label: 'Istanbul' },
+  { value: 'Africa/Cairo', label: 'Cairo' },
+  { value: 'Africa/Johannesburg', label: 'Johannesburg' },
+  { value: 'Asia/Dubai', label: 'Dubai' },
+  { value: 'Asia/Karachi', label: 'Karachi' },
+  { value: 'Asia/Kolkata', label: 'India (Kolkata)' },
+  { value: 'Asia/Bangkok', label: 'Bangkok' },
+  { value: 'Asia/Singapore', label: 'Singapore' },
+  { value: 'Asia/Shanghai', label: 'China (Shanghai)' },
+  { value: 'Asia/Hong_Kong', label: 'Hong Kong' },
+  { value: 'Asia/Tokyo', label: 'Tokyo' },
+  { value: 'Asia/Seoul', label: 'Seoul' },
+  { value: 'Australia/Perth', label: 'Perth' },
+  { value: 'Australia/Sydney', label: 'Sydney' },
+  { value: 'Pacific/Auckland', label: 'Auckland' },
+]
+
+export function timezoneLabel(value: string): string {
+  return COMMON_TIMEZONES.find((z) => z.value === value)?.label ?? value
+}

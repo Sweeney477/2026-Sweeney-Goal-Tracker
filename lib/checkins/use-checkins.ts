@@ -32,6 +32,7 @@ import {
   upsertCheckin,
   insertMeal,
 } from '@/lib/checkins/api'
+import { dayRelativeLabel, localDayKey, resolveTimezone } from '@/lib/dates'
 
 export type TileType = QuickLogTileId
 
@@ -84,13 +85,14 @@ const emptyLastValues = (): Record<TileType, string> => ({
 
 export function useCheckins() {
   const supabase = createClient()
-  const today = format(new Date(), 'yyyy-MM-dd')
+  const [timeZone, setTimeZone] = useState(() => resolveTimezone())
+  const [today, setToday] = useState(() => localDayKey(resolveTimezone()))
 
   const [checkins, setCheckins] = useState<Checkin[]>([])
   const [loading, setLoading] = useState(true)
   const [savingTile, setSavingTile] = useState<TileType | null>(null)
   const [activeTile, setActiveTile] = useState<TileType | null>(null)
-  const [displayName, setDisplayName] = useState('Alex')
+  const [displayName, setDisplayName] = useState('')
   const [units, setUnits] = useState<UnitSystem>('imperial')
   const searchParams = useSearchParams()
   const weightLabel = weightUnitLabel(units)
@@ -126,22 +128,29 @@ export function useCheckins() {
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) return
+      const metaName = (user.user_metadata?.full_name || user.user_metadata?.name || '') as string
       const nameFromEmail = (user.email || '')
         .split('@')[0]
         .split(/[.\-_]/)
         .filter(Boolean)[0]
-      setDisplayName(
-        user.user_metadata?.full_name ||
-          (nameFromEmail ? nameFromEmail[0].toUpperCase() + nameFromEmail.slice(1) : 'Alex')
-      )
+      const pretty =
+        metaName.trim() ||
+        (nameFromEmail
+          ? nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1).toLowerCase()
+          : 'there')
+      setDisplayName(pretty)
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('units')
+        .select('units, timezone')
         .eq('user_id', user.id)
         .maybeSingle()
       const nextUnits = normalizeUnits(profile?.units)
       setUnits(nextUnits)
+      const tz = resolveTimezone(profile?.timezone)
+      setTimeZone(tz)
+      const day = localDayKey(tz)
+      setToday(day)
       const unitLabel = weightUnitLabel(nextUnits)
 
       const [{ data: checkinData }, { data: mealData }, { data: projectData }] = await Promise.all([
@@ -155,7 +164,7 @@ export function useCheckins() {
 
       const latestWeight = latestOfType(data, 'weight')
       const latestSteps = latestOfType(data, 'steps')
-      const stepsToday = data.find((c) => c.type === 'steps' && c.date === today)
+      const stepsToday = data.find((c) => c.type === 'steps' && c.date === day)
       const latestWorkout = latestOfType(data, 'workout')
       const latestCoding = latestOfType(data, 'coding_minutes')
       const latestCalories = latestOfType(data, 'calories')
@@ -352,18 +361,23 @@ export function useCheckins() {
 
   const recentActivity = useMemo(
     () =>
-      checkins.slice(0, 15).map((c) => ({
-        ...c,
-        displayDate: format(new Date(c.date), 'MMM d'),
-      })),
-    [checkins]
+      checkins.slice(0, 15).map((c) => {
+        const relative = dayRelativeLabel(c.date, timeZone)
+        return {
+          ...c,
+          displayDate: relative || format(new Date(`${c.date}T12:00:00`), 'MMM d'),
+        }
+      }),
+    [checkins, timeZone]
   )
 
   const todayTypes = useMemo(() => todayTypesFromCheckins(checkins, today), [checkins, today])
 
   const focusTiles = focusTileIds() as CheckinTileId[]
   const doneToday = focusTiles.filter((t) => isTileDone(t, todayTypes)).length
-  const focusPct = Math.round((doneToday / focusTiles.length) * 100)
+  const focusPct = focusTiles.length
+    ? Math.round((doneToday / focusTiles.length) * 100)
+    : 0
 
   const streak = useMemo(() => {
     const streakType = streakTracker()?.checkinType ?? 'weight'
@@ -373,6 +387,7 @@ export function useCheckins() {
 
   return {
     today,
+    timeZone,
     loading,
     savingTile,
     activeTile,

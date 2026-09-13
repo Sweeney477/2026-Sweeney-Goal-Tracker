@@ -8,6 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ArrowRight, Loader2, Target } from 'lucide-react'
 import { toast } from '@/components/ui/toast'
+import { TimezoneSelect } from '@/components/timezone-select'
+import { detectBrowserTimezone, resolveTimezone } from '@/lib/dates'
+import { LoadingState } from '@/components/loading-state'
+import { brand } from '@/lib/config/brand'
 
 type Step = 'units' | 'goals' | 'complete'
 
@@ -19,7 +23,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<Step>('units')
 
   const [units, setUnits] = useState<'metric' | 'imperial'>('imperial')
-  const [timezone, setTimezone] = useState('UTC')
+  const [timezone, setTimezone] = useState(() => detectBrowserTimezone())
   const [calorieGoal, setCalorieGoal] = useState('2200')
   const [stepGoal, setStepGoal] = useState('10000')
   const [codingGoal, setCodingGoal] = useState('240')
@@ -96,7 +100,7 @@ export default function OnboardingPage() {
           {
             user_id: user.id,
             units,
-            timezone: timezone || 'UTC',
+            timezone: resolveTimezone(timezone),
             calorie_goal: calorieGoal ? Number(calorieGoal) : null,
             step_goal: stepGoal ? Number(stepGoal) : null,
             coding_goal_minutes: codingGoal ? Number(codingGoal) : null,
@@ -125,8 +129,8 @@ export default function OnboardingPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="mx-auto max-w-md px-4 py-8">
+        <LoadingState label="Loading onboarding" variant="form" />
       </div>
     )
   }
@@ -134,13 +138,11 @@ export default function OnboardingPage() {
   return (
     <div className="mx-auto max-w-md space-y-6 px-4 py-8">
       <div className="text-center">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-blue-600 text-white">
-          <Target className="h-8 w-8" />
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-xl bg-brand text-brand-foreground">
+          <Target className="h-7 w-7" />
         </div>
-        <h1 className="mt-4 text-2xl font-semibold">Welcome to GoalTracker</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Let&apos;s set up your preferences to get started
-        </p>
+        <h1 className="mt-4 font-display text-2xl font-semibold tracking-tight">Welcome to {brand.name}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{brand.tagline}</p>
       </div>
 
       {step === 'units' && (
@@ -172,23 +174,16 @@ export default function OnboardingPage() {
               <Label htmlFor="timezone" className="text-sm font-semibold">
                 Timezone
               </Label>
-              <Input
-                id="timezone"
-                type="text"
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                placeholder="UTC"
-                className="h-12 rounded-2xl"
-              />
+              <TimezoneSelect id="timezone" value={timezone} onChange={setTimezone} />
               <p className="text-xs text-muted-foreground">
-                Use IANA format (e.g., America/New_York, Europe/London)
+                Your local day for logs, streaks, and history.
               </p>
             </div>
           </div>
 
           <Button
             onClick={handleNext}
-            className="h-12 w-full rounded-2xl bg-blue-600 text-white hover:bg-blue-600/90"
+            className="h-11 w-full rounded-xl"
           >
             Continue
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -270,7 +265,7 @@ export default function OnboardingPage() {
                 void handleComplete()
               }}
               disabled={saving}
-              className="h-12 flex-1 rounded-2xl bg-blue-600 text-white hover:bg-blue-600/90"
+              className="h-12 flex-1 rounded-2xl bg-brand text-brand-foreground hover:bg-brand-deep"
             >
               {saving ? (
                 <>

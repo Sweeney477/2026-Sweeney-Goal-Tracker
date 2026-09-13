@@ -3,7 +3,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
 import { useEffect, useState } from 'react'
-import { format, startOfWeek, addWeeks } from 'date-fns'
+import { format, addWeeks } from 'date-fns'
+import { localDayKey, resolveTimezone, weekStartKey } from '@/lib/dates'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/ui/toast'
 import { Project, ProjectMilestone } from '@/lib/types'
@@ -12,7 +13,6 @@ import {
   createProject,
   DEFAULT_MILESTONES,
   deleteProject,
-  deriveProjectXpStats,
   listProjects,
   updateProject,
   withMilestoneIds,
@@ -24,8 +24,9 @@ export function useProjects() {
   const [loading, setLoading] = useState(true)
   const [showNewForm, setShowNewForm] = useState(false)
   const [formName, setFormName] = useState('')
-  const [formWeekStart, setFormWeekStart] = useState(
-    format(startOfWeek(new Date()), 'yyyy-MM-dd')
+  const [timeZone, setTimeZone] = useState(() => resolveTimezone())
+  const [formWeekStart, setFormWeekStart] = useState(() =>
+    weekStartKey(localDayKey(resolveTimezone()), resolveTimezone())
   )
   const [formDoD, setFormDoD] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -45,6 +46,11 @@ export function useProjects() {
       } = await supabase.auth.getUser()
 
       if (!user) return
+
+      const { data: profile } = await supabase.from('profiles').select('timezone').eq('user_id', user.id).maybeSingle()
+      const tz = resolveTimezone(profile?.timezone)
+      setTimeZone(tz)
+      setFormWeekStart((prev) => prev || weekStartKey(localDayKey(tz), tz))
 
       const { data, error } = await listProjects(supabase, user.id)
 
@@ -93,7 +99,7 @@ export function useProjects() {
 
       setFormName('')
       setFormDoD('')
-      setFormWeekStart(format(startOfWeek(new Date()), 'yyyy-MM-dd'))
+      setFormWeekStart(weekStartKey(localDayKey(timeZone), timeZone))
       setShowNewForm(false)
       loadProjects()
       toast('Project created!', 'success')
@@ -255,24 +261,19 @@ export function useProjects() {
     }
   }
 
-  const statusColors: Record<string, string> = {
-    planning: 'bg-gray-500',
-    in_progress: 'bg-blue-500',
-    shipped: 'bg-green-500',
-    paused: 'bg-yellow-500',
-  }
-
-  const currentWeekStart = startOfWeek(new Date())
+  const currentWeekStartKey = weekStartKey(localDayKey(timeZone), timeZone)
+  const currentWeekStart = new Date(`${currentWeekStartKey}T12:00:00`)
   const currentWeekEnd = addWeeks(currentWeekStart, 1)
-  const dateRangeLabel = `${format(currentWeekStart, 'MMM d')} – ${format(
+  const dateRangeLabel = `Week of ${format(currentWeekStart, 'MMM d')} – ${format(
     new Date(currentWeekEnd.getTime() - 24 * 60 * 60 * 1000),
     'MMM d'
   )}`
 
-  const { xp, level } = deriveProjectXpStats(projects)
+  const shippedCount = projects.filter((p) => p.status === 'shipped').length
 
   return {
     projects,
+    timeZone,
     loading,
     showNewForm,
     setShowNewForm,
@@ -291,10 +292,14 @@ export function useProjects() {
     setNewMilestoneLabel,
     showAddMilestone,
     setShowAddMilestone,
-    statusColors,
+    statusColors: {
+      planning: 'bg-muted-foreground',
+      in_progress: 'bg-brand',
+      shipped: 'bg-emerald-600',
+      paused: 'bg-amber-600',
+    } as Record<string, string>,
     dateRangeLabel,
-    xp,
-    level,
+    shippedCount,
     calculateProgress,
     handleSubmit,
     handleMilestoneToggle,

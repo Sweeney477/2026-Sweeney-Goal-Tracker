@@ -1,9 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Plus, Flame, Trophy, ChevronRight } from 'lucide-react'
+import { Plus, ChevronRight } from 'lucide-react'
 import { GoalPlanDisplay } from '@/components/goal-plan-display'
-import { format } from 'date-fns'
+import { localDayKey, resolveTimezone } from '@/lib/dates'
+import { calculateDailyStreak } from '@/lib/checkins/streak'
+import { EmptyState } from '@/components/empty-state'
+import { PageHeader } from '@/components/page-header'
 import { computeGoalProgress } from '@/lib/goals/progress'
 import { latestByTrackerFromCheckins } from '@/lib/goals/latest-readings'
 
@@ -20,39 +23,15 @@ export default async function GoalsPage() {
     return null
   }
 
-  const today = format(new Date(), 'yyyy-MM-dd')
-
-  const { data: weightCheckins } = await supabase
-    .from('checkins')
-    .select('date')
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('timezone')
     .eq('user_id', user.id)
-    .eq('type', 'weight')
-    .order('date', { ascending: false })
-    .limit(60)
+    .maybeSingle()
+  const timeZone = resolveTimezone(profile?.timezone)
+  const today = localDayKey(timeZone)
 
-  let streak = 0
-  if (weightCheckins && weightCheckins.length > 0) {
-    const sortedDates = weightCheckins.map((c) => c.date).sort().reverse()
-    let currentDate = new Date(today)
-    for (const dateStr of sortedDates) {
-      if (format(currentDate, 'yyyy-MM-dd') === dateStr) {
-        streak++
-        currentDate.setDate(currentDate.getDate() - 1)
-      } else {
-        break
-      }
-    }
-  }
-
-  const { count: checkinCount } = await supabase
-    .from('checkins')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-
-  const level = Math.max(1, Math.floor(((checkinCount || 0) as number) / 25) + 1)
-  const levelLabel = level >= 10 ? 'Master' : level >= 5 ? 'Builder' : 'Starter'
-
-  const [{ data: goals, error }, { data: recentCheckins }] = await Promise.all([
+  const [{ data: goals, error }, { data: recentCheckins }, { data: weightCheckins }] = await Promise.all([
     supabase.from('goals').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase
       .from('checkins')
@@ -60,7 +39,19 @@ export default async function GoalsPage() {
       .eq('user_id', user.id)
       .order('date', { ascending: false })
       .limit(40),
+    supabase
+      .from('checkins')
+      .select('date')
+      .eq('user_id', user.id)
+      .eq('type', 'weight')
+      .order('date', { ascending: false })
+      .limit(60),
   ])
+
+  const streak = calculateDailyStreak(
+    (weightCheckins || []).map((c) => c.date),
+    today
+  )
 
   const latestByTracker = latestByTrackerFromCheckins(recentCheckins)
 
@@ -105,62 +96,48 @@ export default async function GoalsPage() {
 
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold">Your Goals</h1>
-          <p className="text-sm text-muted-foreground">Keep pushing, you&apos;re doing great!</p>
-        </div>
-        <div className="grid h-11 w-11 place-items-center rounded-full bg-muted text-sm font-semibold">
-          {user.email?.slice(0, 2).toUpperCase() || 'U'}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex items-center gap-3 rounded-2xl border bg-background p-3 shadow-sm">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-orange-50 text-orange-600">
-            <Flame className="h-5 w-5" />
-          </div>
-          <div className="leading-tight">
-            <div className="text-[11px] font-semibold text-muted-foreground">STREAK</div>
-            <div className="text-sm font-semibold">{streak} Days</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border bg-background p-3 shadow-sm">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-yellow-50 text-yellow-700">
-            <Trophy className="h-5 w-5" />
-          </div>
-          <div className="leading-tight">
-            <div className="text-[11px] font-semibold text-muted-foreground">LEVEL</div>
-            <div className="text-sm font-semibold">
-              {levelLabel} <span className="text-muted-foreground">({level})</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Goals"
+        description="Outcomes you are working toward, with optional tracking plans."
+        action={
+          goalsWithPlans.length > 0 ? (
+            <Link href="/goals/new">
+              <Button className="rounded-xl">
+                <Plus className="mr-2 h-4 w-4" />
+                New goal
+              </Button>
+            </Link>
+          ) : null
+        }
+      />
+      {streak > 0 ? (
+        <p className="text-sm text-muted-foreground">Weight logging streak: {streak} days</p>
+      ) : null}
 
       <div className="space-y-4">
         {goalsWithPlans.length === 0 ? (
-          <div className="rounded-3xl border bg-background p-6 text-center shadow-sm">
-            <p className="text-sm text-muted-foreground">
-              No goals yet. Create your first goal to get started.
-            </p>
-            <Link href="/goals/new" className="mt-4 inline-flex">
-              <Button className="rounded-2xl">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Goal
-              </Button>
-            </Link>
-          </div>
+          <EmptyState
+            title="No goals yet"
+            description="Create a goal to track outcomes alongside daily logs."
+            action={
+              <Link href="/goals/new">
+                <Button className="rounded-xl">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create goal
+                </Button>
+              </Link>
+            }
+          />
         ) : (
           goalsWithPlans.map((goal, idx) => {
             const progress = computeGoalProgress(goal, latestByTracker)
 
             return (
-              <div key={goal.id} className="rounded-3xl border bg-background p-4 shadow-sm">
+              <div key={goal.id} className="rounded-2xl border bg-card p-4">
                 <div className="flex items-start gap-3">
-                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-600 text-white">
-                    <span className="text-sm font-semibold">{idx + 1}</span>
+                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-sm font-semibold text-brand">
+                    <span>{idx + 1}</span>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
@@ -173,7 +150,7 @@ export default async function GoalsPage() {
                       </div>
                       {progress.outcomePercent != null ? (
                         <div className="rounded-full bg-brand/10 px-2 py-1 text-xs font-semibold text-brand">
-                          {progress.outcomePercent}% outcome
+                          {progress.outcomePercent}%
                         </div>
                       ) : progress.timeElapsedPercent != null ? (
                         <div className="rounded-full bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground">
@@ -183,13 +160,13 @@ export default async function GoalsPage() {
                     </div>
 
                     {progress.outcomePercent != null ? (
-                      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                         <div className="h-full rounded-full bg-brand" style={{ width: `${progress.outcomePercent}%` }} />
                       </div>
                     ) : progress.timeElapsedPercent != null ? (
                       <div className="mt-3 space-y-1">
                         <div className="text-xs text-muted-foreground">{progress.outcomeLabel}</div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                           <div className="h-full rounded-full bg-muted-foreground/40" style={{ width: `${progress.timeElapsedPercent}%` }} />
                         </div>
                       </div>
@@ -198,7 +175,7 @@ export default async function GoalsPage() {
                     )}
 
                     {(goal.plan || goal.target) && (
-                      <details className="mt-3 rounded-2xl border bg-muted/20 p-3">
+                      <details className="mt-3 rounded-xl border bg-muted/20 p-3">
                         <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
                           Plan
                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -229,15 +206,6 @@ export default async function GoalsPage() {
           })
         )}
       </div>
-
-      <Link
-        href="/goals/new"
-        className="flex items-center justify-center gap-2 rounded-2xl border bg-blue-600 px-5 py-4 text-base font-semibold text-white shadow-sm"
-      >
-        <Plus className="h-5 w-5" />
-        New Goal
-      </Link>
     </div>
   )
 }
-

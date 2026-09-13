@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Settings, Save, Loader2, Download, Trash2, AlertTriangle } from 'lucide-react'
+import { TimezoneSelect } from '@/components/timezone-select'
+import { LoadingState } from '@/components/loading-state'
+import { detectBrowserTimezone, resolveTimezone } from '@/lib/dates'
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
 
@@ -41,7 +44,11 @@ export default function SettingsPage() {
 
       if (fetchError) throw fetchError
 
-      setProfile(data || {})
+      const next = data || {}
+      if (!next.timezone) {
+        next.timezone = detectBrowserTimezone()
+      }
+      setProfile(next)
     } catch (err: any) {
       console.error('Error loading profile:', err)
       setError('Failed to load settings')
@@ -65,7 +72,7 @@ export default function SettingsPage() {
       }
 
       const updates: Partial<Profile> = {
-        timezone: profile.timezone || 'UTC',
+        timezone: resolveTimezone(profile.timezone),
         units: profile.units || 'imperial',
         calorie_goal: profile.calorie_goal ? Number(profile.calorie_goal) : null,
         step_goal: profile.step_goal ? Number(profile.step_goal) : null,
@@ -143,22 +150,20 @@ export default function SettingsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <LoadingState label="Loading settings" variant="form" />
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-600 text-white">
+        <div className="grid h-11 w-11 place-items-center rounded-xl bg-brand text-brand-foreground">
           <Settings className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold">Settings</h1>
-          <p className="text-sm text-muted-foreground">Customize your tracking preferences</p>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Settings</h1>
+          <p className="text-sm text-muted-foreground">
+            Units, timezone, and daily targets. Timezone defines your local day across the app.
+          </p>
         </div>
       </div>
 
@@ -174,7 +179,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <div className="space-y-6 rounded-3xl border bg-background p-6 shadow-sm">
+      <div className="space-y-6 rounded-2xl border bg-card p-6">
         {/* Units */}
         <div className="space-y-3">
           <Label htmlFor="units" className="text-sm font-semibold">
@@ -184,7 +189,7 @@ export default function SettingsPage() {
             id="units"
             value={profile.units || 'imperial'}
             onChange={(e) => setProfile({ ...profile, units: e.target.value as 'metric' | 'imperial' })}
-            className="flex h-12 w-full rounded-2xl border border-input bg-background px-4 py-2 text-sm"
+            className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
           >
             <option value="imperial">Imperial (lbs, ft)</option>
             <option value="metric">Metric (kg, cm)</option>
@@ -196,16 +201,13 @@ export default function SettingsPage() {
           <Label htmlFor="timezone" className="text-sm font-semibold">
             Timezone
           </Label>
-          <Input
+          <TimezoneSelect
             id="timezone"
-            type="text"
-            value={profile.timezone || 'UTC'}
-            onChange={(e) => setProfile({ ...profile, timezone: e.target.value })}
-            placeholder="UTC"
-            className="h-12 rounded-2xl"
+            value={resolveTimezone(profile.timezone)}
+            onChange={(timezone) => setProfile({ ...profile, timezone })}
           />
           <p className="text-xs text-muted-foreground">
-            Use IANA timezone format (e.g., America/New_York, Europe/London)
+            Check-ins, meals, workouts, and streaks use this calendar day — not UTC midnight.
           </p>
         </div>
 
@@ -224,7 +226,7 @@ export default function SettingsPage() {
               setProfile({ ...profile, calorie_goal: e.target.value ? Number(e.target.value) : undefined })
             }
             placeholder="2200"
-            className="h-12 rounded-2xl"
+            className="h-11 rounded-xl"
           />
           <p className="text-xs text-muted-foreground">Target calories per day</p>
         </div>
@@ -244,7 +246,7 @@ export default function SettingsPage() {
               setProfile({ ...profile, step_goal: e.target.value ? Number(e.target.value) : undefined })
             }
             placeholder="10000"
-            className="h-12 rounded-2xl"
+            className="h-11 rounded-xl"
           />
           <p className="text-xs text-muted-foreground">Target steps per day</p>
         </div>
@@ -267,7 +269,7 @@ export default function SettingsPage() {
               })
             }
             placeholder="240"
-            className="h-12 rounded-2xl"
+            className="h-11 rounded-xl"
           />
           <p className="text-xs text-muted-foreground">Target coding minutes per day</p>
         </div>
@@ -275,7 +277,7 @@ export default function SettingsPage() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="h-12 w-full rounded-2xl bg-blue-600 text-white hover:bg-blue-600/90"
+          className="h-11 w-full rounded-xl"
         >
           {saving ? (
             <>

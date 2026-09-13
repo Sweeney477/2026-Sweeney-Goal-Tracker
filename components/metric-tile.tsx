@@ -16,7 +16,7 @@ type MetricTileProps = {
 }
 
 const baseClass =
-  'relative block overflow-hidden rounded-3xl border p-4 text-left shadow-sm transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand'
+  'relative block overflow-hidden rounded-2xl border bg-card p-4 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand'
 
 export function MetricTile({
   href,
@@ -32,19 +32,43 @@ export function MetricTile({
 }: MetricTileProps) {
   const content = (
     <>
-      {icon ? <div className="absolute left-4 top-4">{icon}</div> : null}
+      {icon ? <div className="mb-3">{icon}</div> : null}
       {badge ? <div className="absolute right-4 top-4">{badge}</div> : null}
-      <div className={cn('text-xs font-semibold', featured ? 'opacity-90' : 'text-muted-foreground', icon && 'mt-12')}>
+      <div
+        className={cn(
+          'text-xs font-semibold',
+          featured ? 'text-brand-foreground/90' : 'text-muted-foreground'
+        )}
+      >
         {label}
       </div>
-      <div className="mt-2 flex items-end gap-2">
-        <div className={cn('font-display text-2xl font-semibold tracking-tight', featured && 'text-3xl')}>
+      <div className="mt-1.5 flex items-end gap-1.5">
+        <div
+          className={cn(
+            'font-display text-xl font-semibold tracking-tight',
+            featured && 'text-2xl'
+          )}
+        >
           {value}
         </div>
-        {unit ? <div className={cn('pb-1 text-sm', featured ? 'opacity-90' : 'text-muted-foreground')}>{unit}</div> : null}
+        {unit ? (
+          <div
+            className={cn(
+              'pb-0.5 text-xs',
+              featured ? 'text-brand-foreground/80' : 'text-muted-foreground'
+            )}
+          >
+            {unit}
+          </div>
+        ) : null}
       </div>
       {typeof progress === 'number' ? (
-        <div className={cn('mt-3 h-1.5 w-full overflow-hidden rounded-full', featured ? 'bg-white/20' : 'bg-muted')}>
+        <div
+          className={cn(
+            'mt-3 h-1 w-full overflow-hidden rounded-full',
+            featured ? 'bg-white/20' : 'bg-muted'
+          )}
+        >
           <div
             className={cn('h-full rounded-full', featured ? 'bg-white' : 'bg-brand')}
             style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
@@ -56,9 +80,7 @@ export function MetricTile({
 
   const classes = cn(
     baseClass,
-    featured
-      ? 'border-transparent bg-gradient-to-br from-brand to-brand-deep text-brand-foreground'
-      : 'bg-background',
+    featured && 'border-transparent bg-brand text-brand-foreground hover:bg-brand-deep',
     className
   )
 

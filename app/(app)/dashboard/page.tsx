@@ -1,21 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { format } from 'date-fns'
-import { CheckSquare, Code2, Flame, Footprints, TrendingUp } from 'lucide-react'
+import {
+  CheckSquare,
+  Code2,
+  Dumbbell,
+  Flame,
+  Footprints,
+  TrendingUp,
+} from 'lucide-react'
 import { WeightChart } from '@/components/weight-chart'
 import { EmptyState } from '@/components/empty-state'
 import { MetricTile } from '@/components/metric-tile'
 import { PageHeader } from '@/components/page-header'
+import { DayContext } from '@/components/day-context'
 import { TodayChecklist } from '@/components/today-checklist'
 import { calculateDailyStreak } from '@/lib/checkins/streak'
 import { buildDailyWinChecklist } from '@/lib/checkins/domain'
 import { computeGoalProgress } from '@/lib/goals/progress'
 import { latestByTrackerFromCheckins } from '@/lib/goals/latest-readings'
-import {
-  dashboardTrackers,
-  streakTracker,
-} from '@/lib/config/trackers'
+import { dashboardTrackers, streakTracker } from '@/lib/config/trackers'
 import { normalizeUnits, percentOfGoal, weightUnitLabel } from '@/lib/units'
+import { formatLocalDay, localDayKey, resolveTimezone } from '@/lib/dates'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -25,9 +30,22 @@ export default async function DashboardPage() {
 
   if (!user) return null
 
-  const today = format(new Date(), 'yyyy-MM-dd')
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('step_goal, coding_goal_minutes, calorie_goal, units, timezone')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const timeZone = resolveTimezone(profile?.timezone)
+  const today = localDayKey(timeZone)
   const streakDef = streakTracker()
   const streakType = streakDef?.checkinType ?? 'weight'
+
+  const thirtyDaysAgo = (() => {
+    const d = new Date(`${today}T12:00:00Z`)
+    d.setUTCDate(d.getUTCDate() - 30)
+    return localDayKey(timeZone, d)
+  })()
 
   const [
     { data: todayCheckins },
@@ -36,7 +54,6 @@ export default async function DashboardPage() {
     { data: weightData },
     { data: recentCheckins },
     { data: goals },
-    { data: profile },
   ] = await Promise.all([
     supabase.from('checkins').select('*').eq('user_id', user.id).eq('date', today),
     supabase
@@ -59,7 +76,7 @@ export default async function DashboardPage() {
       .select('date, value_json')
       .eq('user_id', user.id)
       .eq('type', 'weight')
-      .gte('date', format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'))
+      .gte('date', thirtyDaysAgo)
       .order('date', { ascending: true }),
     supabase
       .from('checkins')
@@ -73,11 +90,6 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(5),
-    supabase
-      .from('profiles')
-      .select('step_goal, coding_goal_minutes, calorie_goal, units')
-      .eq('user_id', user.id)
-      .maybeSingle(),
   ])
 
   const units = normalizeUnits(profile?.units)
@@ -103,6 +115,7 @@ export default async function DashboardPage() {
   const stepsTodayValue = valueFor('steps')
   const caloriesTodayValue = valueFor('calories')
   const codingTodayValue = valueFor('coding_minutes')
+  const workoutToday = todayCheckins?.find((c) => c.type === 'workout')
 
   const latestByTracker = {
     ...latestByTrackerFromCheckins(recentCheckins),
@@ -120,8 +133,8 @@ export default async function DashboardPage() {
         value: latestWeightValue ?? '—',
         unit: weightUnitLabel(units),
         progress: undefined as number | undefined,
-        featured: true,
-        icon: <CheckSquare className="h-5 w-5" />,
+        featured: false,
+        icon: <CheckSquare className="h-4 w-4 text-brand" />,
       }
     }
     if (tracker.id === 'steps') {
@@ -133,7 +146,7 @@ export default async function DashboardPage() {
         unit: undefined as string | undefined,
         progress: value != null ? percentOfGoal(value, stepGoal) : 0,
         featured: false,
-        icon: <Footprints className="h-5 w-5 text-brand" />,
+        icon: <Footprints className="h-4 w-4 text-brand" />,
       }
     }
     if (tracker.id === 'food') {
@@ -147,7 +160,18 @@ export default async function DashboardPage() {
             ? percentOfGoal(Number(caloriesTodayValue), calorieGoal)
             : undefined,
         featured: false,
-        icon: <Flame className="h-5 w-5 text-orange-600" />,
+        icon: <Flame className="h-4 w-4 text-brand" />,
+      }
+    }
+    if (tracker.id === 'workout') {
+      return {
+        tracker,
+        href: `/check-ins?type=workout`,
+        value: workoutToday?.value_json?.type || (workoutToday ? 'Logged' : '—'),
+        unit: undefined as string | undefined,
+        progress: undefined as number | undefined,
+        featured: false,
+        icon: <Dumbbell className="h-4 w-4 text-brand" />,
       }
     }
     const value = codingTodayValue != null ? Number(codingTodayValue) : null
@@ -158,7 +182,7 @@ export default async function DashboardPage() {
       unit: value != null ? 'hr' : undefined,
       progress: value != null ? percentOfGoal(value, codingGoal) : 0,
       featured: false,
-      icon: <Code2 className="h-5 w-5 text-cyan-700" />,
+      icon: <Code2 className="h-4 w-4 text-brand" />,
     }
   })
 
@@ -169,21 +193,22 @@ export default async function DashboardPage() {
   }))
 
   return (
-    <div className="animate-fade-up space-y-4">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Today"
-        title={format(new Date(), 'EEEE, MMM d')}
-        description="Log the day. Keep the streak."
+        title={formatLocalDay(timeZone, 'long')}
+        description="Log leading metrics for the day."
         action={
-          <div className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-            {doneCount}/{checklist.length} done
+          <div className="rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand">
+            {doneCount}/{checklist.length} logged
           </div>
         }
       />
+      <DayContext timeZone={timeZone} showZone className="-mt-4" />
 
       <TodayChecklist items={checklist} />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {dashboardTiles.map((tile) => (
           <MetricTile
             key={tile.tracker.id}
@@ -194,103 +219,76 @@ export default async function DashboardPage() {
             progress={tile.progress}
             featured={tile.featured}
             icon={
-              <div
-                className={
-                  tile.featured
-                    ? 'grid h-10 w-10 place-items-center rounded-2xl bg-white/15'
-                    : 'grid h-10 w-10 place-items-center rounded-2xl bg-brand/10'
-                }
-              >
-                {tile.icon}
-              </div>
-            }
-            badge={
-              tile.tracker.id === 'code' ? (
-                <div
-                  className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold ${
-                    codingTodayValue != null && Number(codingTodayValue) > 0
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                  aria-label={
-                    codingTodayValue != null && Number(codingTodayValue) > 0
-                      ? 'Coding logged today'
-                      : 'Coding not logged yet'
-                  }
-                >
-                  {codingTodayValue != null && Number(codingTodayValue) > 0 ? '✓' : ''}
-                </div>
-              ) : tile.tracker.id === 'steps' && stepsTodayValue != null ? (
-                <div className="rounded-full bg-brand/10 px-2 py-1 text-xs font-semibold text-brand">
-                  {percentOfGoal(Number(stepsTodayValue), stepGoal)}%
-                </div>
-              ) : null
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-brand/10">{tile.icon}</div>
             }
           />
         ))}
       </div>
 
-      <div className="rounded-3xl border bg-background p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm font-semibold">Weight trend</div>
-            <div className="text-xs text-muted-foreground">
-              Last 30 days · {weightUnitLabel(units)}
+      <div className="grid gap-4 lg:grid-cols-5">
+        <div className="rounded-2xl border bg-card p-4 lg:col-span-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-semibold">Weight trend</div>
+              <div className="text-xs text-muted-foreground">
+                Last 30 days · {weightUnitLabel(units)}
+              </div>
             </div>
+            <Link href="/check-ins?type=weight" className="text-sm font-medium text-brand">
+              Log
+            </Link>
           </div>
-          <Link href="/check-ins?type=weight" className="text-sm font-medium text-brand">
-            Log
-          </Link>
+          <div className="mt-3">
+            <WeightChart data={chartData} unit={weightUnitLabel(units)} />
+          </div>
         </div>
-        <div className="mt-3">
-          <WeightChart data={chartData} unit={weightUnitLabel(units)} />
+
+        <div className="rounded-2xl border bg-card p-5 lg:col-span-2">
+          <div className="text-sm font-semibold">
+            {streakDef ? `${streakDef.label} streak` : 'Logging streak'}
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            Consecutive local days with a log
+          </div>
+          <div className="mt-6 flex items-baseline gap-2">
+            <div className="font-display text-4xl font-semibold tracking-tight">{streak}</div>
+            <div className="text-sm font-medium text-muted-foreground">days</div>
+          </div>
+          <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+            <TrendingUp className="h-3.5 w-3.5" />
+            <span>Based on your timezone ({timeZone}).</span>
+          </div>
         </div>
       </div>
 
-      <div className="relative overflow-hidden rounded-3xl border bg-orange-50 p-5 shadow-sm dark:bg-orange-950/30">
-        <div className="text-sm font-semibold">Current streak</div>
-        <div className="text-xs text-muted-foreground">
-          {streakDef
-            ? `Consecutive days with ${streakDef.label.toLowerCase()} logged`
-            : 'Daily logging streak'}
-        </div>
-        <div className="mt-4 flex items-end gap-3">
-          <div className="font-display text-5xl font-semibold text-orange-600">{streak}</div>
-          <div className="pb-2 text-sm font-semibold">DAYS</div>
-        </div>
-        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-          <TrendingUp className="h-4 w-4" />
-          <span>Consistency compounds.</span>
-        </div>
-      </div>
-
-      <div className="rounded-3xl border bg-background p-4 shadow-sm">
+      <div className="rounded-2xl border bg-card p-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-semibold">Active goals</div>
-            <div className="text-xs text-muted-foreground">
-              Outcome progress when linked; calendar time shown separately
-            </div>
+            <div className="text-xs text-muted-foreground">Outcome progress when a target is linked</div>
           </div>
           <Link href="/goals" className="text-sm font-medium text-brand">
-            View
+            View all
           </Link>
         </div>
 
         <div className="mt-3 space-y-3">
           {activeGoals.length === 0 ? (
             <EmptyState
-              title="No active goals yet"
-              description="Create a goal and optional AI tracking plan to stay oriented."
+              title="No active goals"
+              description="Add a goal to track outcomes alongside daily logs."
               action={
-                <Link href="/goals/new" className="text-sm font-semibold text-brand">
-                  Add a goal
+                <Link
+                  href="/goals/new"
+                  className="inline-flex h-10 items-center justify-center rounded-xl bg-brand px-4 text-sm font-medium text-brand-foreground hover:bg-brand-deep"
+                >
+                  Create goal
                 </Link>
               }
             />
           ) : (
-            activeGoals.slice(0, 2).map((goal) => (
-              <div key={goal.id} className="rounded-2xl border bg-muted/30 p-3">
+            activeGoals.slice(0, 3).map((goal) => (
+              <div key={goal.id} className="rounded-xl bg-muted/40 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold">{goal.title}</div>
@@ -298,7 +296,7 @@ export default async function DashboardPage() {
                   </div>
                   <div className="text-right text-xs font-semibold">
                     {goal.progress.outcomePercent != null ? (
-                      <div className="text-brand">{goal.progress.outcomePercent}% outcome</div>
+                      <div className="text-brand">{goal.progress.outcomePercent}%</div>
                     ) : null}
                     {goal.progress.timeElapsedPercent != null ? (
                       <div className="font-normal text-muted-foreground">
@@ -308,14 +306,14 @@ export default async function DashboardPage() {
                   </div>
                 </div>
                 {goal.progress.outcomePercent != null ? (
-                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                     <div
                       className="h-full rounded-full bg-brand"
                       style={{ width: `${goal.progress.outcomePercent}%` }}
                     />
                   </div>
                 ) : goal.progress.timeElapsedPercent != null ? (
-                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                     <div
                       className="h-full rounded-full bg-muted-foreground/40"
                       style={{ width: `${goal.progress.timeElapsedPercent}%` }}
@@ -326,14 +324,6 @@ export default async function DashboardPage() {
             ))
           )}
         </div>
-
-        <Link
-          href="/goals/new"
-          className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-dashed bg-background px-4 py-3 text-sm font-semibold text-muted-foreground"
-        >
-          <span className="grid h-6 w-6 place-items-center rounded-full bg-muted">+</span>
-          Add new goal
-        </Link>
       </div>
     </div>
   )

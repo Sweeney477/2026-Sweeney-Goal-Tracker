@@ -16,15 +16,16 @@
     --secondary: 166 20% 94%;
     --secondary-foreground: 168 30% 12%;
     --muted: 160 14% 93%;
-    --muted-foreground: 168 10% 38%;
+    /* Slightly deeper muted labels for WCAG-friendlier secondary text */
+    --muted-foreground: 168 12% 32%;
     --accent: 166 28% 92%;
     --accent-foreground: 168 30% 12%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 166 16% 86%;
-    --input: 166 16% 86%;
+    --border: 166 14% 88%;
+    --input: 166 14% 88%;
     --ring: 173 58% 32%;
-    --radius: 0.9rem;
+    --radius: 0.75rem;
     --brand: 173 58% 32%;
     --brand-deep: 176 62% 24%;
     --brand-foreground: 0 0% 100%;
@@ -73,16 +74,24 @@
 
 @layer utilities {
   .app-dots {
-    background-image: radial-gradient(hsl(var(--foreground) / 0.07) 1px, transparent 1px);
-    background-size: 18px 18px;
+    background-image: radial-gradient(hsl(var(--foreground) / 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
     background-position: 0 0;
   }
 
   .app-soft {
     background:
-      radial-gradient(1100px circle at 12% -10%, hsl(var(--brand) / 0.16), transparent 42%),
-      radial-gradient(900px circle at 100% 0%, hsl(176 45% 40% / 0.10), transparent 36%),
-      radial-gradient(800px circle at 50% 120%, hsl(40 40% 70% / 0.12), transparent 42%);
+      radial-gradient(1000px circle at 8% -8%, hsl(var(--brand) / 0.10), transparent 40%),
+      radial-gradient(700px circle at 100% 0%, hsl(176 40% 40% / 0.06), transparent 38%);
+  }
+
+  /* Mobile bottom nav clearance (bar ~64px + home indicator) */
+  .pb-nav {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 

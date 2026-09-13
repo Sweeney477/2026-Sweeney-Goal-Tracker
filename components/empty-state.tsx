@@ -12,11 +12,11 @@ export function EmptyState({ title, description, action, className }: EmptyState
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center rounded-3xl border border-dashed bg-background/70 px-6 py-10 text-center',
+        'flex flex-col items-center justify-center rounded-2xl bg-muted/40 px-6 py-10 text-center',
         className
       )}
     >
-      <div className="font-display text-lg font-semibold tracking-tight">{title}</div>
+      <div className="font-display text-base font-semibold tracking-tight">{title}</div>
       {description ? (
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">{description}</p>
       ) : null}

@@ -77,18 +77,19 @@ const config = {
           to: { height: '0' },
         },
         'fade-up': {
-          from: { opacity: '0', transform: 'translateY(8px)' },
+          from: { opacity: '0.92', transform: 'translateY(4px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
         'soft-pulse': {
           '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.7' },
+          '50%': { opacity: '0.85' },
         },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'fade-up': 'fade-up 0.45s ease-out both',
+        /* Mild entrance — never starts fully transparent (washed flash) */
+        'fade-up': 'fade-up 0.28s ease-out both',
         'soft-pulse': 'soft-pulse 2.4s ease-in-out infinite',
       },
     },
