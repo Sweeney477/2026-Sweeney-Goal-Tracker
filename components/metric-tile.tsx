@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import type { ReactNode } from 'react'
+import type { SoftTone } from '@/components/soft-ui'
 
 type MetricTileProps = {
   href?: string
@@ -11,12 +12,10 @@ type MetricTileProps = {
   badge?: ReactNode
   progress?: number
   featured?: boolean
+  tone?: SoftTone
   className?: string
   onClick?: () => void
 }
-
-const baseClass =
-  'relative block overflow-hidden rounded-2xl border bg-card p-4 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand'
 
 export function MetricTile({
   href,
@@ -27,17 +26,34 @@ export function MetricTile({
   badge,
   progress,
   featured,
+  tone = 'white',
   className,
   onClick,
 }: MetricTileProps) {
+  const onBrand = featured || tone === 'brand'
+  const toneClass =
+    tone === 'mint'
+      ? 'pastel-mint'
+      : tone === 'peach'
+        ? 'pastel-peach'
+        : tone === 'lilac'
+          ? 'pastel-lilac'
+          : tone === 'butter'
+            ? 'pastel-butter'
+            : tone === 'sky'
+              ? 'pastel-sky'
+              : tone === 'rose'
+                ? 'pastel-rose'
+                : null
+
   const content = (
     <>
       {icon ? <div className="mb-3">{icon}</div> : null}
       {badge ? <div className="absolute right-4 top-4">{badge}</div> : null}
       <div
         className={cn(
-          'text-xs font-semibold',
-          featured ? 'text-brand-foreground/90' : 'text-muted-foreground'
+          'text-[11px] font-semibold uppercase tracking-[0.1em]',
+          onBrand ? 'text-brand-foreground/90' : 'text-muted-foreground'
         )}
       >
         {label}
@@ -46,7 +62,8 @@ export function MetricTile({
         <div
           className={cn(
             'font-display text-xl font-semibold tracking-tight',
-            featured && 'text-2xl'
+            featured && 'text-2xl',
+            onBrand && 'text-brand-foreground'
           )}
         >
           {value}
@@ -55,7 +72,7 @@ export function MetricTile({
           <div
             className={cn(
               'pb-0.5 text-xs',
-              featured ? 'text-brand-foreground/80' : 'text-muted-foreground'
+              onBrand ? 'text-brand-foreground/80' : 'text-muted-foreground'
             )}
           >
             {unit}
@@ -66,11 +83,11 @@ export function MetricTile({
         <div
           className={cn(
             'mt-3 h-1 w-full overflow-hidden rounded-full',
-            featured ? 'bg-white/20' : 'bg-muted'
+            onBrand ? 'bg-white/20' : 'bg-white/55'
           )}
         >
           <div
-            className={cn('h-full rounded-full', featured ? 'bg-white' : 'bg-brand')}
+            className={cn('h-full rounded-full', onBrand ? 'bg-white' : 'bg-brand')}
             style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
           />
         </div>
@@ -79,8 +96,8 @@ export function MetricTile({
   )
 
   const classes = cn(
-    baseClass,
-    featured && 'border-transparent bg-brand text-brand-foreground hover:bg-brand-deep',
+    'relative block overflow-hidden rounded-[1.75rem] p-4 text-left shadow-soft transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand',
+    onBrand ? 'bg-brand text-brand-foreground' : toneClass || 'soft-card',
     className
   )
 

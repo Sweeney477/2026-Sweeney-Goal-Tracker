@@ -3,12 +3,12 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
-import { Check } from 'lucide-react'
+import { Code2, Dumbbell, Flame, Footprints, Scale } from 'lucide-react'
 import { LoadingState } from '@/components/loading-state'
 import { DayContext } from '@/components/day-context'
-import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
+import { SoftCard, ActivityCard, toneFromPastel } from '@/components/soft-ui'
+import type { SoftPastel } from '@/lib/config/trackers'
 import { useCheckins } from '@/lib/checkins/use-checkins'
 
 export function CheckInsView() {
@@ -75,7 +75,7 @@ export function CheckInsView() {
               placeholder="Add context"
             />
           </div>
-          <Button className="rounded-xl" onClick={() => void handleQuickSubmit(activeTile)} disabled={savingTile === activeTile}>
+          <Button className="rounded-full" onClick={() => void handleQuickSubmit(activeTile)} disabled={savingTile === activeTile}>
             {savingTile === activeTile ? 'Saving…' : 'Save'}
           </Button>
         </div>
@@ -145,7 +145,7 @@ export function CheckInsView() {
               className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             />
           </div>
-          <Button className="rounded-xl" onClick={() => void handleQuickSubmit('food')} disabled={savingTile === 'food'}>
+          <Button className="rounded-full" onClick={() => void handleQuickSubmit('food')} disabled={savingTile === 'food'}>
             {savingTile === 'food' ? 'Saving…' : 'Save'}
           </Button>
         </div>
@@ -198,7 +198,7 @@ export function CheckInsView() {
               placeholder="Add context"
             />
           </div>
-          <Button className="rounded-xl" onClick={() => void handleQuickSubmit('workout')} disabled={savingTile === 'workout'}>
+          <Button className="rounded-full" onClick={() => void handleQuickSubmit('workout')} disabled={savingTile === 'workout'}>
             {savingTile === 'workout' ? 'Saving…' : 'Save'}
           </Button>
         </div>
@@ -251,7 +251,7 @@ export function CheckInsView() {
               placeholder="What did you work on?"
             />
           </div>
-          <Button className="rounded-xl" onClick={() => void handleQuickSubmit('code')} disabled={savingTile === 'code'}>
+          <Button className="rounded-full" onClick={() => void handleQuickSubmit('code')} disabled={savingTile === 'code'}>
             {savingTile === 'code' ? 'Saving…' : 'Save'}
           </Button>
         </div>
@@ -261,111 +261,124 @@ export function CheckInsView() {
     return null
   }
 
+  const tileIcon = (tile: (typeof focusTiles)[number]) => {
+    const props = { className: 'h-4 w-4', strokeWidth: 1.75 as const }
+    switch (tile) {
+      case 'weight':
+        return <Scale {...props} />
+      case 'steps':
+        return <Footprints {...props} />
+      case 'food':
+        return <Flame {...props} />
+      case 'workout':
+        return <Dumbbell {...props} />
+      case 'code':
+        return <Code2 {...props} />
+      default:
+        return <Scale {...props} />
+    }
+  }
+
   if (loading) {
     return <LoadingState label="Loading check-ins" />
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Log"
-        title={displayName ? `Hello, ${displayName}` : 'Daily log'}
-        description="Record today’s metrics. Values save to your local day."
-        action={
-          streak > 0 ? (
-            <div className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-foreground">
-              {streak}-day streak
-            </div>
-          ) : null
-        }
-      />
-      <DayContext timeZone={timeZone} showZone className="-mt-4" />
+    <div className="space-y-7">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Log</p>
+          <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight md:text-4xl">
+            {displayName ? `Hello, ${displayName}` : 'Daily log'}
+          </h1>
+          <DayContext timeZone={timeZone} showZone className="mt-1.5" />
+        </div>
+        {streak > 0 ? (
+          <div className="rounded-full bg-brand/10 px-3 py-1.5 text-xs font-semibold text-brand">
+            {streak}-day streak
+          </div>
+        ) : null}
+      </div>
 
-      <div className="rounded-2xl border bg-card p-5">
-        <div className="flex items-start justify-between gap-4">
+      <SoftCard tone="brand" className="relative overflow-hidden p-5 md:p-6">
+        <div className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex items-start justify-between gap-4">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Progress
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-foreground/75">
+              Today&apos;s progress
             </div>
-            <div className="mt-1 font-display text-xl font-semibold tracking-tight">
+            <div className="mt-2 font-display text-2xl font-semibold tracking-tight text-brand-foreground md:text-3xl">
               {doneToday} of {focusTiles.length} logged
             </div>
-            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+            <p className="mt-2 max-w-sm text-sm text-brand-foreground/80">
               Finish the checklist when you can — incomplete days stay visible in history.
             </p>
           </div>
           <div
-            className="grid h-14 w-14 place-items-center rounded-full border-2 border-brand/30 text-sm font-semibold text-brand"
+            className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white/15 text-sm font-semibold text-brand-foreground"
             aria-label={`${focusPct} percent complete`}
           >
             {focusPct}%
           </div>
         </div>
-        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${focusPct}%` }} />
+        <div className="relative mt-5 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+          <div className="h-full rounded-full bg-white transition-all" style={{ width: `${focusPct}%` }} />
         </div>
-      </div>
+      </SoftCard>
 
       <div>
-        <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Today&apos;s metrics
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold tracking-tight">Today&apos;s metrics</h2>
+          <span className="text-xs text-muted-foreground">Tap a card to log</span>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           {focusTiles.map((tile) => {
             const meta = tileMeta(tile)
             const isDone = isTileDone(tile)
+            const tone = toneFromPastel((meta.accent || 'pastel-mint') as SoftPastel)
+            const isActive = activeTile === tile
             return (
-              <button
+              <ActivityCard
                 key={tile}
-                type="button"
                 onClick={() => setActiveTile(tile)}
-                className={cn(
-                  'rounded-2xl border bg-card p-4 text-left transition-colors hover:bg-muted/40',
-                  activeTile === tile && 'border-brand/40 ring-2 ring-brand/20'
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="text-sm font-semibold">{meta.label}</div>
-                  <div
-                    className={cn(
-                      'grid h-6 w-6 place-items-center rounded-full border text-[10px]',
-                      isDone
-                        ? 'border-brand bg-brand text-brand-foreground'
-                        : 'border-muted-foreground/30 text-muted-foreground'
-                    )}
-                  >
-                    {isDone ? <Check className="h-3.5 w-3.5" /> : null}
-                  </div>
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">{lastValues[tile] || '—'}</div>
-              </button>
+                category={meta.label}
+                title={isDone ? 'Logged' : meta.helper}
+                value={lastValues[tile] || '—'}
+                icon={tileIcon(tile)}
+                tone={isActive ? 'brand' : tone}
+                done={isDone}
+                className={isActive ? 'ring-2 ring-brand/30' : undefined}
+              />
             )
           })}
         </div>
       </div>
 
-      {activeTile && (
-        <div className="rounded-2xl border bg-card p-4">
-          <div className="mb-3 text-sm font-semibold">Log {tileMeta(activeTile).label}</div>
+      {activeTile ? (
+        <SoftCard className="p-5">
+          <div className="mb-4 font-display text-lg font-semibold tracking-tight">
+            Log {tileMeta(activeTile).label}
+          </div>
           {renderForm()}
-        </div>
-      )}
+        </SoftCard>
+      ) : null}
 
       <div>
-        <div className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Recent activity
-        </div>
-        <div className="mt-3 rounded-2xl border bg-card p-4">
+        <h2 className="mb-3 font-display text-lg font-semibold tracking-tight">Recent activity</h2>
+        <SoftCard className="p-5">
           {recentActivity.length === 0 ? (
             <EmptyState
               title="No check-ins yet"
               description="Log a metric above to start your history."
-              className="border-0 bg-transparent py-6"
+              className="bg-transparent py-6"
             />
           ) : (
             <div className="space-y-3">
               {recentActivity.map((checkin) => (
-                <div key={checkin.id} className="flex items-start justify-between gap-3 border-b border-border/60 pb-3 last:border-0 last:pb-0">
+                <div
+                  key={checkin.id}
+                  className="flex items-start justify-between gap-3 rounded-2xl bg-muted/40 px-3 py-3"
+                >
                   <div className="min-w-0">
                     <div className="text-sm font-semibold capitalize">
                       {checkin.type.replace('_', ' ')}
@@ -375,18 +388,20 @@ export function CheckInsView() {
                       <div className="mt-0.5 truncate text-xs text-muted-foreground">{checkin.notes}</div>
                     ) : null}
                   </div>
-                  <div className="shrink-0 text-right text-sm font-medium tabular-nums text-muted-foreground">
-                    {checkin.value_json?.value || checkin.value_json?.type || '—'}{' '}
-                    {checkin.type === 'weight' && weightLabel}
-                    {checkin.type === 'steps' && 'steps'}
-                    {checkin.type === 'calories' && 'cal'}
-                    {checkin.type === 'coding_minutes' && 'min'}
+                  <div className="shrink-0 text-right font-display text-base font-semibold tabular-nums">
+                    {checkin.value_json?.value || checkin.value_json?.type || '—'}
+                    <span className="ml-1 text-xs font-medium text-muted-foreground">
+                      {checkin.type === 'weight' && weightLabel}
+                      {checkin.type === 'steps' && 'steps'}
+                      {checkin.type === 'calories' && 'cal'}
+                      {checkin.type === 'coding_minutes' && 'min'}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </SoftCard>
       </div>
     </div>
   )

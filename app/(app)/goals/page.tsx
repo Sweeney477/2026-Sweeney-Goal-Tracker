@@ -5,6 +5,7 @@ import { Plus, ChevronRight } from 'lucide-react'
 import { GoalPlanDisplay } from '@/components/goal-plan-display'
 import { EmptyState } from '@/components/empty-state'
 import { PageHeader } from '@/components/page-header'
+import { SoftCard } from '@/components/soft-ui'
 import { computeGoalProgress } from '@/lib/goals/progress'
 import { latestByTrackerFromCheckins } from '@/lib/goals/latest-readings'
 
@@ -15,7 +16,6 @@ export default async function GoalsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
 
   if (!user) {
     return null
@@ -36,24 +36,23 @@ export default async function GoalsPage() {
   if (error) {
     console.error('Error loading goals', error)
     return (
-      <div className="rounded-3xl border bg-background p-5 shadow-sm">
-        <div className="text-lg font-semibold">Goals</div>
+      <SoftCard className="p-5">
+        <div className="font-display text-lg font-semibold">Goals</div>
         <p className="mt-1 text-sm text-muted-foreground">
           We couldn&apos;t load your goals. {error.message || 'Please refresh and try again.'}
         </p>
         <div className="mt-4">
           <Link href="/goals/new">
-            <Button className="rounded-2xl">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button className="rounded-full">
+              <Plus className="mr-2 h-4 w-4" />
               New Goal
             </Button>
           </Link>
         </div>
-      </div>
+      </SoftCard>
     )
   }
 
-  // Fetch goal plans for each goal
   const goalsWithPlans = await Promise.all(
     (goals || []).map(async (goal) => {
       const { data: plan, error: planError } = await supabase
@@ -72,16 +71,17 @@ export default async function GoalsPage() {
     })
   )
 
+  const goalPastels = ['mint', 'lilac', 'sky', 'peach', 'butter'] as const
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <PageHeader
         title="Goals"
         description="Outcomes you are working toward, with optional tracking plans."
         action={
           goalsWithPlans.length > 0 ? (
             <Link href="/goals/new">
-              <Button className="rounded-xl">
+              <Button className="rounded-full">
                 <Plus className="mr-2 h-4 w-4" />
                 New goal
               </Button>
@@ -90,59 +90,68 @@ export default async function GoalsPage() {
         }
       />
 
-      <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-2">
         {goalsWithPlans.length === 0 ? (
-          <EmptyState
-            title="No goals yet"
-            description="Create a goal to track outcomes alongside daily logs."
-            action={
-              <Link href="/goals/new">
-                <Button className="rounded-xl">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create goal
-                </Button>
-              </Link>
-            }
-          />
+          <div className="md:col-span-2">
+            <EmptyState
+              title="No goals yet"
+              description="Create a goal to track outcomes alongside daily logs."
+              action={
+                <Link href="/goals/new">
+                  <Button className="rounded-full">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create goal
+                  </Button>
+                </Link>
+              }
+            />
+          </div>
         ) : (
           goalsWithPlans.map((goal, idx) => {
             const progress = computeGoalProgress(goal, latestByTracker)
+            const tone = goalPastels[idx % goalPastels.length]
 
             return (
-              <div key={goal.id} className="rounded-2xl border bg-card p-4">
+              <SoftCard key={goal.id} tone={tone} className="p-5">
                 <div className="flex items-start gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-sm font-semibold text-brand">
+                  <div className="grid h-10 w-10 place-items-center rounded-2xl bg-white/70 text-sm font-semibold text-brand">
                     <span>{idx + 1}</span>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="truncate text-base font-semibold">{goal.title}</div>
+                        <div className="truncate font-display text-base font-semibold">{goal.title}</div>
                         <div className="text-sm text-muted-foreground">
                           {goal.category}
                           {goal.target ? ` • ${goal.target}` : ''}
                         </div>
                       </div>
                       {progress.outcomePercent != null ? (
-                        <div className="rounded-full bg-brand/10 px-2 py-1 text-xs font-semibold text-brand">
+                        <div className="rounded-full bg-white/70 px-2 py-1 text-xs font-semibold text-brand">
                           {progress.outcomePercent}%
                         </div>
                       ) : progress.timeElapsedPercent != null ? (
-                        <div className="rounded-full bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground">
+                        <div className="rounded-full bg-white/50 px-2 py-1 text-xs font-semibold text-muted-foreground">
                           {progress.timeElapsedPercent}% time
                         </div>
                       ) : null}
                     </div>
 
                     {progress.outcomePercent != null ? (
-                      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                        <div className="h-full rounded-full bg-brand" style={{ width: `${progress.outcomePercent}%` }} />
+                      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/60">
+                        <div
+                          className="h-full rounded-full bg-brand"
+                          style={{ width: `${progress.outcomePercent}%` }}
+                        />
                       </div>
                     ) : progress.timeElapsedPercent != null ? (
                       <div className="mt-3 space-y-1">
                         <div className="text-xs text-muted-foreground">{progress.outcomeLabel}</div>
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                          <div className="h-full rounded-full bg-muted-foreground/40" style={{ width: `${progress.timeElapsedPercent}%` }} />
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/60">
+                          <div
+                            className="h-full rounded-full bg-muted-foreground/40"
+                            style={{ width: `${progress.timeElapsedPercent}%` }}
+                          />
                         </div>
                       </div>
                     ) : (
@@ -150,7 +159,7 @@ export default async function GoalsPage() {
                     )}
 
                     {(goal.plan || goal.target) && (
-                      <details className="mt-3 rounded-xl border bg-muted/20 p-3">
+                      <details className="mt-3 rounded-2xl bg-white/50 p-3">
                         <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
                           Plan
                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -169,14 +178,14 @@ export default async function GoalsPage() {
 
                     <div className="mt-4 flex gap-2">
                       <Link href={`/goals/${goal.id}/edit`}>
-                        <Button variant="outline" size="sm" className="rounded-xl">
+                        <Button variant="outline" size="sm" className="rounded-full bg-white/70">
                           Edit
                         </Button>
                       </Link>
                     </div>
                   </div>
                 </div>
-              </div>
+              </SoftCard>
             )
           })
         )}

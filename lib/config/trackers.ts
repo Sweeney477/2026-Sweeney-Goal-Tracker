@@ -13,14 +13,16 @@ export type CheckinType = 'weight' | 'steps' | 'calories' | 'coding_minutes' | '
 /** Quick-log tile ids on /check-ins (food maps to meals + calories) */
 export type QuickLogTileId = 'weight' | 'steps' | 'food' | 'workout' | 'code'
 
+export type SoftPastel = 'pastel-mint' | 'pastel-peach' | 'pastel-lilac' | 'pastel-butter' | 'pastel-sky' | 'pastel-rose'
+
 export type TrackerDef = {
   id: QuickLogTileId
   /** Underlying checkin type when one exists */
   checkinType?: CheckinType
   label: string
   helper: string
-  /** Soft tile wash */
-  accent: string
+  /** Soft pastel fill utility class */
+  accent: SoftPastel
   /** Show on dashboard "today" grid */
   showOnDashboard: boolean
   /** Counts toward daily completion ring */
@@ -41,7 +43,7 @@ export const trackers: TrackerDef[] = [
     checkinType: 'weight',
     label: 'Weight',
     helper: 'Log today’s weight',
-    accent: 'from-brand/10 to-brand/20',
+    accent: 'pastel-mint',
     showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: true,
@@ -55,7 +57,7 @@ export const trackers: TrackerDef[] = [
     checkinType: 'steps',
     label: 'Steps',
     helper: 'Log today’s steps',
-    accent: 'from-brand/10 to-brand/15',
+    accent: 'pastel-butter',
     showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: false,
@@ -70,7 +72,7 @@ export const trackers: TrackerDef[] = [
     checkinType: 'calories',
     label: 'Food',
     helper: 'Log a meal with calories',
-    accent: 'from-brand/5 to-brand/15',
+    accent: 'pastel-peach',
     showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: false,
@@ -84,7 +86,7 @@ export const trackers: TrackerDef[] = [
     checkinType: 'workout',
     label: 'Workout',
     helper: 'Log today’s workout',
-    accent: 'from-brand/10 to-brand/20',
+    accent: 'pastel-lilac',
     showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: false,
@@ -97,7 +99,7 @@ export const trackers: TrackerDef[] = [
     checkinType: 'coding_minutes',
     label: 'Coding',
     helper: 'Log coding minutes',
-    accent: 'from-brand/10 to-brand/20',
+    accent: 'pastel-sky',
     showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: false,
@@ -137,6 +139,23 @@ export function trackerFromQuery(type: string | null | undefined): QuickLogTileI
 }
 
 export function focusTileIds(): QuickLogTileId[] {
-  // Match dashboard checklist / summary tiles
   return trackers.filter((t) => t.countsTowardDailyWin).map((t) => t.id)
+}
+
+export function pastelTone(accent: SoftPastel): 'mint' | 'peach' | 'lilac' | 'butter' | 'sky' | 'rose' {
+  switch (accent) {
+    case 'pastel-peach':
+      return 'peach'
+    case 'pastel-lilac':
+      return 'lilac'
+    case 'pastel-butter':
+      return 'butter'
+    case 'pastel-sky':
+      return 'sky'
+    case 'pastel-rose':
+      return 'rose'
+    case 'pastel-mint':
+    default:
+      return 'mint'
+  }
 }

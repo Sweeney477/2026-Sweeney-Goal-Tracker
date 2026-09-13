@@ -48,7 +48,7 @@ export function WorkoutsView() {
   } = useWorkouts()
 
   const renderExerciseCard = (exercise: EditableExercise, exerciseIndex: number) => (
-    <div key={`${exercise.name}-${exerciseIndex}`} className="rounded-3xl border bg-background p-4 shadow-sm">
+    <div key={`${exercise.name}-${exerciseIndex}`} className="soft-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
@@ -188,7 +188,7 @@ export function WorkoutsView() {
         </p>
       </div>
 
-      <div className="rounded-2xl border bg-card p-4">
+      <div className="soft-card p-4">
         <div className="grid grid-cols-1 gap-3">
           <div className="space-y-2">
             <Label htmlFor="title" className="text-xs font-semibold text-muted-foreground">
@@ -281,7 +281,7 @@ export function WorkoutsView() {
 
         <div className="mt-3 space-y-3">
           {recentWorkouts.length === 0 ? (
-            <div className="rounded-3xl border bg-background p-5 text-center text-sm text-muted-foreground shadow-sm">
+            <div className="soft-card p-5 text-center text-sm text-muted-foreground">
               No workouts logged yet.
             </div>
           ) : (
@@ -289,7 +289,7 @@ export function WorkoutsView() {
               const volume = (workout.volume_json as WorkoutVolume | null) || null
               const exerciseCount = volume?.exercises?.length || 0
               return (
-                <div key={workout.id} className="rounded-3xl border bg-background p-4 shadow-sm">
+                <div key={workout.id} className="soft-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-base font-semibold">{workout.workout_type}</div>

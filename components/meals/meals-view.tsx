@@ -64,20 +64,23 @@ export function MealsView() {
       </div>
 
       {/* Calories summary */}
-      <div className="relative overflow-hidden rounded-2xl border bg-brand p-5 text-brand-foreground">
-        <div className="text-sm text-brand-foreground/85">Calories remaining today</div>
-        <div className="mt-1 font-display text-4xl font-semibold tracking-tight">{remaining}</div>
-        <div className="mt-2 flex items-center justify-between text-sm text-brand-foreground/85">
+      <div className="relative overflow-hidden rounded-[1.75rem] bg-brand p-5 text-brand-foreground shadow-soft">
+        <div className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-foreground/75">
+          Calories remaining today
+        </div>
+        <div className="relative mt-1 font-display text-4xl font-semibold tracking-tight">{remaining}</div>
+        <div className="relative mt-2 flex items-center justify-between text-sm text-brand-foreground/85">
           <div>{caloriesToday.toLocaleString()} eaten</div>
           <div>Goal {calorieGoal.toLocaleString()}</div>
         </div>
-        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+        <div className="relative mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
           <div className="h-full rounded-full bg-white" style={{ width: `${eatenPct}%` }} />
         </div>
       </div>
 
       {/* Quick log */}
-      <div className="rounded-3xl border bg-background p-4 shadow-sm">
+      <div className="soft-card p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="text-lg font-semibold">{editingMeal ? 'Edit Meal' : 'Quick Log'}</div>
@@ -132,7 +135,7 @@ export function MealsView() {
             />
           </div>
 
-          <details className="rounded-2xl border bg-muted/20 p-3">
+          <details className="rounded-2xl bg-muted/40 p-3">
             <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
               More details
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -274,12 +277,12 @@ export function MealsView() {
           {loading ? (
             <div className="text-sm text-muted-foreground">Loading…</div>
           ) : meals.length === 0 ? (
-            <div className="rounded-3xl border bg-background p-5 text-center text-sm text-muted-foreground">
+            <div className="soft-card p-5 text-center text-sm text-muted-foreground">
               No meals logged yet.
             </div>
           ) : (
             meals.map((meal) => (
-              <div key={meal.id} className="group overflow-hidden rounded-3xl border bg-background shadow-sm">
+              <div key={meal.id} className="soft-card group overflow-hidden">
                 <div className="flex items-start justify-between gap-3 p-4">
                   <div className="flex-1">
                     <div className="text-base font-semibold">{meal.name || 'Meal'}</div>

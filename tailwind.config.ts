@@ -33,6 +33,14 @@ const config = {
           deep: 'hsl(var(--brand-deep))',
           foreground: 'hsl(var(--brand-foreground))',
         },
+        pastel: {
+          mint: 'hsl(var(--pastel-mint))',
+          peach: 'hsl(var(--pastel-peach))',
+          lilac: 'hsl(var(--pastel-lilac))',
+          butter: 'hsl(var(--pastel-butter))',
+          sky: 'hsl(var(--pastel-sky))',
+          rose: 'hsl(var(--pastel-rose))',
+        },
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
@@ -64,8 +72,14 @@ const config = {
       },
       borderRadius: {
         lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        md: 'calc(var(--radius) - 4px)',
+        sm: 'calc(var(--radius) - 8px)',
+        soft: '1.75rem',
+        pill: '9999px',
+      },
+      boxShadow: {
+        soft: 'var(--shadow-soft)',
+        lift: 'var(--shadow-lift)',
       },
       keyframes: {
         'accordion-down': {

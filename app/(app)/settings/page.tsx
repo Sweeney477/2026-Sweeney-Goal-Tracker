@@ -179,7 +179,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <div className="space-y-6 rounded-2xl border bg-card p-6">
+      <div className="soft-card space-y-6 p-6">
         {/* Units */}
         <div className="space-y-3">
           <Label htmlFor="units" className="text-sm font-semibold">
@@ -294,7 +294,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Export Data */}
-      <div className="space-y-4 rounded-2xl border bg-card p-6">
+      <div className="soft-card space-y-4 p-6">
         <div>
           <h2 className="text-lg font-semibold">Export Data</h2>
           <p className="mt-1 text-sm text-muted-foreground">
