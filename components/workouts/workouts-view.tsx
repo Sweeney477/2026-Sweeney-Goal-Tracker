@@ -48,7 +48,12 @@ export function WorkoutsView() {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-50 text-blue-700">✕</div>
+            <div
+              className="grid h-11 w-11 place-items-center rounded-2xl bg-brand/10 text-sm font-semibold text-brand"
+              aria-hidden
+            >
+              {exerciseIndex + 1}
+            </div>
             <div className="min-w-0">
               <Input
                 value={exercise.name}
