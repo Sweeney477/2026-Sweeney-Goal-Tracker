@@ -296,12 +296,14 @@ export default async function DashboardPage() {
                     <div className="text-sm font-semibold">{goal.title}</div>
                     <div className="text-xs text-muted-foreground">{goal.progress.outcomeLabel}</div>
                   </div>
-                  <div className="text-right text-xs font-semibold text-muted-foreground">
+                  <div className="text-right text-xs font-semibold">
                     {goal.progress.outcomePercent != null ? (
-                      <div>{goal.progress.outcomePercent}% outcome</div>
+                      <div className="text-brand">{goal.progress.outcomePercent}% outcome</div>
                     ) : null}
                     {goal.progress.timeElapsedPercent != null ? (
-                      <div className="font-normal">{goal.progress.timeElapsedPercent}% time</div>
+                      <div className="font-normal text-muted-foreground">
+                        {goal.progress.timeElapsedPercent}% time
+                      </div>
                     ) : null}
                   </div>
                 </div>

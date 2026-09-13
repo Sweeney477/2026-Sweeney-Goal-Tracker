@@ -499,6 +499,11 @@ export function createVisualMockClient(): any {
   }
 }
 
+/**
+ * Local screenshot / E2E fixture mode only.
+ * Hard-disabled in production so a mistaken Vercel env cannot leak mock data.
+ */
 export function isVisualReview() {
+  if (process.env.NODE_ENV === 'production') return false
   return process.env.NEXT_PUBLIC_VISUAL_REVIEW === '1' || process.env.VISUAL_REVIEW === '1'
 }

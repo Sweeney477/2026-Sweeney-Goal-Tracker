@@ -68,7 +68,12 @@ export default function PhotosPage() {
         data: { user },
       } = await supabase.auth.getUser()
 
-      if (!user) return
+      if (!user) {
+        setPhotos([])
+        setAllPhotos([])
+        setHasMore(false)
+        return
+      }
 
       const from = (pageNum - 1) * PHOTOS_PER_PAGE
       const to = from + PHOTOS_PER_PAGE - 1
@@ -107,6 +112,11 @@ export default function PhotosPage() {
       }
     } catch (error) {
       console.error('Error loading photos:', error)
+      if (!append) {
+        setPhotos([])
+        setAllPhotos([])
+        setHasMore(false)
+      }
     } finally {
       setLoading(false)
       setLoadingMore(false)
@@ -431,7 +441,7 @@ export default function PhotosPage() {
             </button>
           )}
 
-          {hasMore && (
+          {!loading && photos.length > 0 && hasMore ? (
             <Button
               onClick={loadMore}
               disabled={loadingMore}
@@ -440,7 +450,7 @@ export default function PhotosPage() {
             >
               {loadingMore ? 'Loading...' : 'Load More Photos'}
             </Button>
-          )}
+          ) : null}
         </div>
       )}
     </div>

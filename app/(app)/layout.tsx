@@ -29,7 +29,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="app-soft app-dots min-h-screen">
         <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:pl-64">
           <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4 md:max-w-3xl">
-            <div className="flex items-center gap-3">
+            {/* Mobile-only brand mark; desktop sidebar already shows GT. */}
+            <div className="flex items-center gap-3 md:invisible md:pointer-events-none">
               <div className={`grid h-10 w-10 place-items-center rounded-2xl shadow-sm ${brand.markClassName}`}>
                 <span className="font-display text-sm font-semibold">{brand.shortName}</span>
               </div>
