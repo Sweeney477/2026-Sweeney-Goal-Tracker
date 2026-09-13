@@ -96,7 +96,11 @@ export function useMeals() {
         data: { user },
       } = await supabase.auth.getUser()
 
-      if (!user) return
+      if (!user) {
+        setMeals([])
+        setHasMore(false)
+        return
+      }
 
       const from = (pageNum - 1) * MEALS_PER_PAGE
       const to = from + MEALS_PER_PAGE - 1
@@ -125,6 +129,10 @@ export function useMeals() {
       }
     } catch (error) {
       console.error('Error loading meals:', error)
+      if (!append) {
+        setMeals([])
+        setHasMore(false)
+      }
     } finally {
       setLoading(false)
       setLoadingMore(false)

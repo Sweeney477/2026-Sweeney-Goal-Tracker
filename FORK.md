@@ -55,14 +55,36 @@ Copy [`.env.example`](.env.example) to `.env.local` and fill in:
 - `OPENAI_API_KEY` (optional until AI routes are used)
 - `OPENAI_MODEL` (defaults to `gpt-4o-mini`)
 
-The app is served under `basePath` `/goal`.
+The app is served under `basePath` `/goal`. Missing Supabase public env vars throw an actionable error (no silent empty app).
 
-## 6. Deploy checklist
+Never set `NEXT_PUBLIC_VISUAL_REVIEW=1` on Vercel — mock mode is for local screenshots only and is hard-disabled when `NODE_ENV=production`.
+
+## 6. Deploy checklist (hosted Supabase + Vercel)
 
 1. `npm install`
-2. Apply **all** Supabase migrations in `supabase/migrations` (`001`–`007`) in order
-3. Set env vars on Vercel (including service role if account deletion should work)
-4. `npm run build` (or `npx tsc --noEmit` then `npm run build`)
-5. Confirm `/goal/icons/icon-192.png` and `icon-512.png` resolve
-6. Sign in, complete onboarding, log a check-in
-7. In Supabase Auth settings, allow redirect URLs under `https://<host>/goal/auth/callback`
+2. In Supabase SQL Editor, run migrations `001`–`007` in order (or `supabase db push` / link the project)
+3. Confirm Storage bucket `progress-photos` exists (created by `002`) and is **private**
+4. **Auth → URL configuration**: add redirect allowlist entries:
+   - `https://<your-domain>/goal/auth/callback`
+   - `http://localhost:3000/goal/auth/callback` (local)
+5. Vercel → Project → Settings → Environment Variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (for delete-account)
+   - `OPENAI_API_KEY` / `OPENAI_MODEL` (optional AI)
+6. Deploy; open `https://<host>/goal`, sign up, complete onboarding, log a check-in
+7. Confirm `/goal/icons/icon-192.png`, `/goal/icons/icon-512.png`, and `/goal/manifest.webmanifest`
+
+## 7. Local first-run (empty DB is not a brick wall)
+
+```bash
+npm install
+cp .env.example .env.local
+# Prefer local stack:
+supabase start   # applies migrations + seed.sql grants
+# Paste URL + anon key from `supabase status` into .env.local
+npm run dev
+# → http://localhost:3000/goal
+```
+
+If you applied migrations without a reset and see `permission denied for table …`, re-run [`supabase/seed.sql`](supabase/seed.sql).

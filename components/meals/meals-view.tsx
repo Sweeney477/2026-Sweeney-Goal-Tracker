@@ -341,7 +341,7 @@ export function MealsView() {
             ))
           )}
 
-          {hasMore && (
+          {!loading && meals.length > 0 && hasMore ? (
             <Button
               onClick={loadMore}
               disabled={loadingMore}
@@ -350,7 +350,7 @@ export function MealsView() {
             >
               {loadingMore ? 'Loading...' : 'Load More Meals'}
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

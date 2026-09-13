@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,12 @@ export default function LoginPage() {
   const [message, setMessage] = useState('')
 
   const supabase = createClient()
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const err = params.get('error')
+    if (err) setMessage(err)
+  }, [])
 
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setLoading(true)
@@ -53,14 +59,25 @@ export default function LoginPage() {
           },
         })
         if (error) throw error
-        setMessage('Check your email for the login link!')
+        setMessage(
+          'Account created. If email confirmation is enabled, check your inbox; otherwise switch to Sign in.'
+        )
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
         if (error) throw error
-        window.location.href = `${BASE_PATH}/dashboard`
+        const params = new URLSearchParams(window.location.search)
+        const next = params.get('next')
+        let appPath = '/dashboard'
+        if (next && next.startsWith('/') && !next.startsWith('//')) {
+          appPath =
+            BASE_PATH && (next === BASE_PATH || next.startsWith(`${BASE_PATH}/`))
+              ? next.slice(BASE_PATH.length) || '/dashboard'
+              : next
+        }
+        window.location.href = `${BASE_PATH}${appPath}`
       }
     } catch (error: any) {
       setMessage(error.message)

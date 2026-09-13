@@ -381,23 +381,25 @@ export function CheckInsView() {
           ) : recentActivity.length === 0 ? (
             <div className="text-sm text-muted-foreground">No check-ins yet.</div>
           ) : (
-            <div className="relative pl-4">
-              <div className="absolute left-2 top-1 h-full w-px bg-border" />
+            <div className="relative pl-6">
+              <div className="absolute left-2.5 top-1 h-full w-px bg-border" />
               <div className="space-y-4">
                 {recentActivity.map((checkin) => (
-                  <div key={checkin.id} className="relative">
-                    <div className="absolute -left-[2px] top-1 grid h-3 w-3 place-items-center rounded-full bg-blue-600" />
+                  <div key={checkin.id} className="relative pl-4">
+                    <div className="absolute left-0 top-1.5 h-2.5 w-2.5 -translate-x-[5px] rounded-full bg-brand" />
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold capitalize">
-                          {checkin.type.replace('_', ' ')}{' '}
-                          <span className="ml-2 text-xs text-muted-foreground">{checkin.displayDate}</span>
+                          {checkin.type.replace('_', ' ')}
                         </div>
+                        <div className="text-xs text-muted-foreground">{checkin.displayDate}</div>
                         {checkin.notes && (
-                          <div className="truncate text-xs text-muted-foreground">{checkin.notes}</div>
+                          <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {checkin.notes}
+                          </div>
                         )}
                       </div>
-                      <div className="shrink-0 text-sm text-muted-foreground">
+                      <div className="shrink-0 text-right text-sm font-medium text-muted-foreground">
                         {checkin.value_json?.value || checkin.value_json?.type || '—'}{' '}
                         {checkin.type === 'weight' && weightLabel}
                         {checkin.type === 'steps' && 'steps'}

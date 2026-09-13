@@ -1,5 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { getSupabasePublicEnv } from '@/lib/supabase/env'
 import { createVisualMockClient, isVisualReview } from '@/lib/supabase/visual-mock'
 
 export function createClient() {
@@ -7,9 +8,7 @@ export function createClient() {
     return createVisualMockClient() as unknown as SupabaseClient
   }
 
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const { url, anonKey } = getSupabasePublicEnv()
+  return createBrowserClient(url, anonKey)
 }
 

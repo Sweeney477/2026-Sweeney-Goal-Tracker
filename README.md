@@ -2,255 +2,109 @@
 
 A personal operating system for tracking goals, fitness, and projects. Built with Next.js, Supabase, and OpenAI.
 
+**App URL path:** everything lives under `/goal` (Next.js `basePath`). Local: [http://localhost:3000/goal](http://localhost:3000/goal).
+
 ## Features
 
-- **Goal Management**: Create goals and get AI-generated tracking plans
+- **Goal Management**: Create goals and optional AI tracking plans
 - **Check-ins**: Log weight, steps, calories, coding minutes, and workouts
-- **Progress Photos**: Track visual progress with photos over time
-- **Weekly Projects**: Manage your vibe-coding projects week by week
-- **Meals**: Quick calorie/macros logging with optional photo-based estimates
-- **Workout Consistency**: Log workouts and view weekly session counts
-- **AI-Powered Insights**: Get weekly reviews and personalized recommendations
-- **Mobile-First PWA**: Progressive Web App designed for mobile devices
+- **Progress Photos**: Private Supabase Storage photos over time
+- **Weekly Projects**: Milestone-based vibe-coding projects
+- **Meals**: Calorie/macros logging with optional photo estimates
+- **Workouts**: Session builder + history
+- **Weekly Review**: AI insights when `OPENAI_API_KEY` is set
+- **PWA**: Installable under `/goal` with branded icons
 
 ## Tech Stack
 
 - **Framework**: Next.js 14 (App Router, TypeScript)
-- **Database**: Supabase (PostgreSQL with Row Level Security)
-- **Storage**: Supabase Storage (private photo storage)
-- **Authentication**: Supabase Auth (email/password, OAuth, password reset)
-- **AI**: OpenAI Chat Completions (`gpt-4o-mini` default via `OPENAI_MODEL`)
+- **Database**: Supabase (PostgreSQL + RLS)
+- **Storage**: Supabase Storage (`progress-photos`)
+- **Auth**: Supabase Auth (email/password, OAuth providers you enable, password reset)
+- **AI**: OpenAI Chat Completions (`gpt-4o-mini` default via `OPENAI_MODEL`) — lazy-loaded; build works without a key
 - **UI**: Tailwind CSS + shadcn/ui
-- **Charts**: Recharts
 - **PWA**: `@ducanh2912/next-pwa` + `public/manifest.webmanifest`
 
-## Getting Started
+## Get running in ~15 minutes
 
-### Prerequisites
+### Option A — Local Supabase (recommended for first run)
 
-- Node.js 18+ and npm/yarn
-- A Supabase account and project
-- An OpenAI API key
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd 2026-Sweeney-Goal-Tracker
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Set up environment variables:
-Copy [`.env.example`](.env.example) to `.env.local` and fill in values:
-```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # server-only; account deletion
-
-# OpenAI (optional until AI features are used)
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-4o-mini
-```
-
-For fork/brand/module configuration, see [`FORK.md`](FORK.md).
-
-4. Set up Supabase database:
-   - In your Supabase dashboard, go to SQL Editor
-   - Run **all** migrations in order (`001`–`007`):
-     - `supabase/migrations/001_initial_schema.sql`
-     - `supabase/migrations/002_storage_bucket.sql`
-     - `supabase/migrations/003_meals.sql`
-     - `supabase/migrations/004_workouts_volume_and_exercises_library.sql`
-     - `supabase/migrations/005_rate_limits.sql`
-     - `supabase/migrations/006_profiles_targets.sql`
-     - `supabase/migrations/007_project_milestones.sql`
-
-   Or use the Supabase CLI:
+1. Prerequisites: Node 18+, Docker, [Supabase CLI](https://supabase.com/docs/guides/cli)
+2. Clone, install, env:
    ```bash
-   # If you have Supabase CLI installed
-   supabase db push
+   git clone <repository-url>
+   cd 2026-Sweeney-Goal-Tracker
+   npm install
+   cp .env.example .env.local
+   supabase start
    ```
+3. Copy the **API URL** and **anon key** from `supabase status` into `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`). Optionally set `SUPABASE_SERVICE_ROLE_KEY` from the same output for account deletion.
+4. Migrations `001`–`007` and grants seed run automatically on `supabase start`.
+5. `npm run dev` → open [http://localhost:3000/goal](http://localhost:3000/goal)
+6. Sign up → sign in (local email confirmation is off) → onboarding → create a goal → log a check-in
 
-5. Set up Supabase Storage:
-   - In Supabase dashboard, go to Storage
-   - The migration should have created the `progress-photos` bucket
-   - Verify it exists and is set to private
+### Option B — Hosted Supabase + Vercel
 
-6. Run the development server:
+1. Create a Supabase project. In **SQL Editor**, run each file in `supabase/migrations/` in order (`001` … `007`).
+2. Confirm Storage bucket `progress-photos` (from `002`) is private.
+3. **Authentication → URL Configuration** — allow:
+   - `https://<your-vercel-domain>/goal/auth/callback`
+   - Site URL can be `https://<your-vercel-domain>/goal`
+4. In Vercel project env (Production + Preview as needed):
+
+   | Variable | Required | Notes |
+   |----------|----------|-------|
+   | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Project URL |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Anon/public key |
+   | `SUPABASE_SERVICE_ROLE_KEY` | For delete-account | Server-only; never `NEXT_PUBLIC_` |
+   | `OPENAI_API_KEY` | For AI routes | Goal plan / meal estimate / weekly review |
+   | `OPENAI_MODEL` | No | Default `gpt-4o-mini` |
+
+5. Deploy. Open `https://<host>/goal`. Sign up, finish onboarding, log data.
+
+Fork/brand/module knobs: [`FORK.md`](FORK.md). Agent/local gotchas: [`AGENTS.md`](AGENTS.md).
+
+## First-time product loop
+
+1. `/goal/auth/login` — Sign up / Sign in / Forgot password → `/goal/auth/reset`
+2. `/goal/onboarding` — profile defaults
+3. `/goal/dashboard` — “Minimum viable day” checklist
+4. `/goal/check-ins`, `/goal/workouts`, `/goal/meals`, `/goal/goals`, `/goal/projects`
+5. `/goal/settings` — targets, export, delete account (503 with a clear message if service role missing)
+
+## Scripts
+
 ```bash
 npm run dev
-```
-
-7. Open [http://localhost:3000/goal](http://localhost:3000/goal) in your browser (this app is configured to run under the `/goal` base path)
-
-### First Time Setup
-
-1. Sign up for an account at `/goal/auth/login`
-2. Create your first goal at `/goal/goals/new`
-3. Start logging check-ins at `/goal/check-ins`
-4. Generate a weekly review at `/goal/review`
-
-## Project Structure
-
-```
-.
-├── app/
-│   ├── (app)/              # Protected app routes
-│   │   ├── dashboard/      # Main dashboard
-│   │   ├── goals/          # Goals management
-│   │   ├── check-ins/      # Daily check-ins
-│   │   ├── photos/         # Progress photos
-│   │   ├── projects/       # Weekly projects
-│   │   └── review/         # Weekly AI review
-│   ├── api/
-│   │   └── ai/             # AI route handlers
-│   ├── auth/               # Authentication pages
-│   └── layout.tsx          # Root layout
-├── components/
-│   ├── ui/                 # shadcn/ui components
-│   ├── nav.tsx             # Navigation component
-│   └── weight-chart.tsx    # Weight chart component
-├── lib/
-│   ├── supabase/           # Supabase client/server helpers
-│   ├── types.ts            # TypeScript types
-│   └── utils.ts            # Utility functions
-├── supabase/
-│   └── migrations/         # Database migrations
-└── public/
-    ├── manifest.webmanifest # PWA manifest
-    └── icons/              # PWA icons
-```
-
-## Database Schema
-
-The app uses the following main tables:
-
-- `profiles`: User profiles with timezone and unit preferences
-- `goals`: User goals
-- `goal_plans`: AI-generated tracking plans for goals
-- `checkins`: Daily check-ins (weight, steps, calories, coding minutes, workouts)
-- `photos`: Progress photos with storage paths
-- `meals`: Meal logs with macros and optional AI estimates + photos
-- `workouts`: Detailed workout logs
-- `projects`: Weekly vibe-coding projects
-
-All tables have Row Level Security (RLS) enabled, ensuring users can only access their own data.
-
-## API Routes
-
-### `/api/ai/goal-plan`
-Generates an AI-powered tracking plan for a goal.
-
-**Request:**
-```json
-{
-  "goalText": "Lose 20 pounds by June",
-  "context": { ... }
-}
-```
-
-**Response:**
-```json
-{
-  "plan": {
-    "lagging_metric": "weight",
-    "leading_metrics": ["steps/day", "calories/day"],
-    "cadence": "daily",
-    "checkin_types": ["number"],
-    "minimum_viable_day": "...",
-    "weekly_review_prompt": "...",
-    "reminder_suggestions": [...]
-  }
-}
-```
-
-### `/api/ai/weekly-review`
-Generates a weekly review based on recent tracking data.
-
-**Request:**
-```json
-{
-  "days": 7
-}
-```
-
-**Response:**
-```json
-{
-  "review": {
-    "wins": [...],
-    "risks": [...],
-    "changes": [...],
-    "next_week_plan": [...],
-    "priority_goal": "..."
-  }
-}
-```
-
-## PWA Setup
-
-The app is configured as a Progressive Web App:
-
-- Installable on mobile devices
-- Works offline (with limitations)
-- Icons and manifest configured
-
-To customize:
-- Replace icons in `public/icons/` (192x192 and 512x512 PNG files)
-- Update `public/manifest.webmanifest` if needed
-
-## Development
-
-### Build for Production
-
-```bash
+npm run typecheck
 npm run build
 npm start
-```
-
-### Typecheck & lint
-
-```bash
-npm run typecheck
 npm run lint
 ```
 
-## Environment Variables
+Dummy Supabase public env values are enough for `typecheck` / `build`. Do not invent production credentials.
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL | Yes |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon/public key | Yes |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key for account deletion (server-only) | For delete-account |
-| `OPENAI_API_KEY` | Your OpenAI API key | For AI routes only |
-| `OPENAI_MODEL` | OpenAI model to use (default: gpt-4o-mini) | No |
+## Project structure
 
-## Security Notes
+```
+app/(app)/          # Protected product routes
+app/auth/           # Login, forgot, reset, callback
+app/api/            # AI, export, delete-account
+components/         # Views + UI
+lib/config/         # Brand, modules, trackers
+lib/*/              # Domain hooks/helpers
+supabase/migrations # 001–007 schema
+supabase/seed.sql   # Local PostgREST grants
+public/manifest.webmanifest
+public/icons/
+```
 
-- Never expose OpenAI API keys in client-side code (all AI routes are server-side)
-- All database queries use Row Level Security (RLS)
-- Photos are stored privately in Supabase Storage
-- Signed URLs are used for photo access (expire after 1 hour)
+## Security notes
 
-## Future Enhancements (P1/P2)
-
-- Meal logging with food database integration
-- Photo-to-calorie estimation
-- Device sync (iOS HealthKit, Android Health Connect)
-- Workout templates
-- Social features
-- Premium coaching features
+- Never expose the service role or OpenAI keys to the client
+- RLS on all user tables; photos use signed URLs
+- `NEXT_PUBLIC_VISUAL_REVIEW` mock mode is for local screenshots only and cannot activate in production builds
 
 ## License
 
 MIT
-
-## Support
-
-For issues or questions, please open an issue on GitHub.

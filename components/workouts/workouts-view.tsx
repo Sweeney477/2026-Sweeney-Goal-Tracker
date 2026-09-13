@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Plus, X } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { useWorkouts } from '@/lib/workouts/use-workouts'
 import type { EditableExercise } from '@/lib/workouts/types'
 
@@ -98,8 +98,15 @@ export function WorkoutsView() {
           </div>
         </div>
 
-        <Button variant="ghost" size="icon" className="rounded-2xl" onClick={() => removeExercise(exerciseIndex)}>
-          <X className="h-5 w-5 text-muted-foreground" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-2xl"
+          onClick={() => removeExercise(exerciseIndex)}
+          aria-label={`Remove ${exercise.name || 'exercise'}`}
+          title="Remove exercise"
+        >
+          <Trash2 className="h-5 w-5 text-muted-foreground" />
         </Button>
       </div>
 
@@ -108,7 +115,7 @@ export function WorkoutsView() {
           <div>SET</div>
           <div>WT</div>
           <div>REPS</div>
-          <div className="text-center">DONE</div>
+          <div className="text-center">✓</div>
         </div>
         <div className="mt-2 space-y-2">
           {exercise.sets.map((set, setIndex) => (
@@ -133,7 +140,11 @@ export function WorkoutsView() {
                 className="h-10 rounded-2xl"
               />
               <div className="grid place-items-center">
-                <input type="checkbox" className="h-5 w-5 accent-blue-600" aria-label="Done" />
+                <input
+                  type="checkbox"
+                  className="h-5 w-5 accent-brand"
+                  aria-label={`Mark set ${setIndex + 1} done`}
+                />
               </div>
             </div>
           ))}

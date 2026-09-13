@@ -16,6 +16,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        {
+          error:
+            'OPENAI_API_KEY is not configured. Add it in Vercel → Environment Variables (or .env.local) to use weekly reviews.',
+        },
+        { status: 503 }
+      )
+    }
+
     // Check rate limit
     const rateLimit = await checkRateLimit(user.id, 'weekly-review')
     if (!rateLimit.allowed) {
