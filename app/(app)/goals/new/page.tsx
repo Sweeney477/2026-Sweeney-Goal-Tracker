@@ -88,7 +88,6 @@ export default function NewGoalPage() {
         const { error: planError } = await supabase.from('goal_plans').insert({
           goal_id: goal.id,
           plan_json: plan,
-          model: 'gpt-4-turbo-preview',
         })
 
         if (planError) throw planError

@@ -1,9 +1,11 @@
-const withPWA = require("next-pwa")({
-  dest: "public",
+const withPWA = require('@ducanh2912/next-pwa').default({
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
   register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === "development",
-});
+  workboxOptions: {
+    skipWaiting: true,
+  },
+})
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -17,13 +19,12 @@ const nextConfig = {
         permanent: false,
         basePath: false,
       },
-    ];
+    ]
   },
   env: {
     NEXT_PUBLIC_BASE_PATH: '/goal',
   },
   images: {
-    domains: ['localhost'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -31,6 +32,6 @@ const nextConfig = {
       },
     ],
   },
-};
+}
 
-module.exports = withPWA(nextConfig);
+module.exports = withPWA(nextConfig)

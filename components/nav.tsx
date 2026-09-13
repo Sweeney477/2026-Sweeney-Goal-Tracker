@@ -1,42 +1,41 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  CheckSquare,
+  Code,
+  Dumbbell,
+  FileText,
+  Home,
+  Image,
+  MoreHorizontal,
+  Settings,
+  Target,
+  UtensilsCrossed,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import {
-  Home,
-  Target,
-  CheckSquare,
-  Image,
-  Code,
-  FileText,
-  UtensilsCrossed,
-  Dumbbell,
-  MoreHorizontal,
-  X,
-  Settings,
-} from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { brand } from '@/lib/config/brand'
+import { navModules, type AppModule } from '@/lib/config/modules'
+import { cn } from '@/lib/utils'
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
 
-const primaryItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/goals', label: 'Goals', icon: Target },
-  { href: '/check-ins', label: 'Check-ins', icon: CheckSquare },
-  { href: '/meals', label: 'Meals', icon: UtensilsCrossed },
-  { href: '/workouts', label: 'Workouts', icon: Dumbbell },
-  { href: '/photos', label: 'Photos', icon: Image },
-] as const
-
-const secondaryItems = [
-  { href: '/projects', label: 'Projects', icon: Code },
-  { href: '/review', label: 'Review', icon: FileText },
-  { href: '/settings', label: 'Settings', icon: Settings },
-] as const
+const iconMap: Record<AppModule['icon'], LucideIcon> = {
+  Home,
+  CheckSquare,
+  Dumbbell,
+  UtensilsCrossed,
+  Target,
+  Image,
+  Code,
+  FileText,
+  Settings,
+}
 
 export function Nav() {
   const rawPathname = usePathname()
@@ -49,6 +48,10 @@ export function Nav() {
       ? rawPathname.slice(BASE_PATH.length) || '/'
       : rawPathname
 
+  const primaryItems = useMemo(() => navModules('primary'), [])
+  const secondaryItems = useMemo(() => navModules('secondary'), [])
+  const allItems = useMemo(() => [...primaryItems, ...secondaryItems], [primaryItems, secondaryItems])
+
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/auth/login')
@@ -56,57 +59,79 @@ export function Nav() {
 
   const activePrimary = useMemo(() => {
     if (!pathname) return null
-    return primaryItems.find((item) => pathname === item.href) || null
-  }, [pathname])
+    return primaryItems.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`)) || null
+  }, [pathname, primaryItems])
+
+  useEffect(() => {
+    if (!moreOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMoreOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [moreOpen])
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <nav className="hidden md:fixed md:inset-y-0 md:left-0 md:z-30 md:flex md:w-64 md:flex-col md:border-r md:bg-background">
+      <nav
+        aria-label="Main"
+        className="hidden md:fixed md:inset-y-0 md:left-0 md:z-30 md:flex md:w-64 md:flex-col md:border-r md:bg-background/95 md:backdrop-blur"
+      >
+        <div className="flex items-center gap-3 border-b px-4 py-4">
+          <div className={`grid h-10 w-10 place-items-center rounded-2xl ${brand.markClassName}`}>
+            <span className="font-display text-sm font-semibold">{brand.shortName}</span>
+          </div>
+          <div>
+            <div className="font-display text-sm font-semibold">{brand.name}</div>
+            <div className="text-xs text-muted-foreground">Personal OS</div>
+          </div>
+        </div>
         <div className="flex flex-1 flex-col gap-1 p-3">
-          {[...primaryItems, ...secondaryItems].map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
+          {allItems.map((item) => {
+            const Icon = iconMap[item.icon]
+            const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
             return (
               <Link
-                key={item.href}
+                key={item.id}
                 href={item.href}
                 className={cn(
                   'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
                   isActive
-                    ? 'bg-accent text-accent-foreground'
+                    ? 'bg-brand/10 text-brand'
                     : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 )}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-5 w-5" aria-hidden />
                 <span>{item.label}</span>
               </Link>
             )
           })}
         </div>
         <div className="border-t p-4">
-          <Button variant="outline" className="w-full" onClick={handleSignOut}>
+          <Button variant="outline" className="w-full rounded-2xl" onClick={handleSignOut}>
             Sign Out
           </Button>
         </div>
       </nav>
 
-      {/* Mobile bottom tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70 md:hidden">
+      <nav
+        aria-label="Primary"
+        className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70 md:hidden"
+      >
         <div className="mx-auto flex max-w-md items-center justify-between px-2 py-2">
           {primaryItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
+            const Icon = iconMap[item.icon]
+            const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
             return (
               <Link
-                key={item.href}
+                key={item.id}
                 href={item.href}
                 className={cn(
                   'flex w-full flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium',
-                  isActive ? 'text-blue-600' : 'text-muted-foreground'
+                  isActive ? 'text-brand' : 'text-muted-foreground'
                 )}
               >
-                <Icon className={cn('h-5 w-5', isActive ? 'text-blue-600' : '')} />
+                <Icon className="h-5 w-5" aria-hidden />
                 <span>{item.label}</span>
               </Link>
             )
@@ -115,20 +140,21 @@ export function Nav() {
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={moreOpen}
             className={cn(
               'flex w-full flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium',
-              !activePrimary ? 'text-blue-600' : 'text-muted-foreground'
+              !activePrimary ? 'text-brand' : 'text-muted-foreground'
             )}
           >
-            <MoreHorizontal className={cn('h-5 w-5', !activePrimary ? 'text-blue-600' : '')} />
+            <MoreHorizontal className="h-5 w-5" aria-hidden />
             <span>More</span>
           </button>
         </div>
       </nav>
 
-      {/* More sheet */}
-      {moreOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+      {moreOpen ? (
+        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="More navigation">
           <button
             type="button"
             className="absolute inset-0 bg-black/40"
@@ -137,12 +163,13 @@ export function Nav() {
           />
           <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md rounded-t-3xl border bg-background p-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold">More</div>
+              <div className="font-display text-sm font-semibold">More</div>
               <Button
                 variant="ghost"
                 size="icon"
                 className="rounded-full"
                 onClick={() => setMoreOpen(false)}
+                aria-label="Close"
               >
                 <X className="h-5 w-5" />
               </Button>
@@ -150,21 +177,24 @@ export function Nav() {
 
             <div className="grid gap-2">
               {secondaryItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
+                const Icon = iconMap[item.icon]
+                const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
                 return (
                   <Link
-                    key={item.href}
+                    key={item.id}
                     href={item.href}
                     onClick={() => setMoreOpen(false)}
                     className={cn(
                       'flex items-center justify-between rounded-2xl border px-4 py-3 text-sm',
-                      isActive ? 'border-blue-600/30 bg-blue-600/5' : 'bg-background'
+                      isActive ? 'border-brand/30 bg-brand/5' : 'bg-background'
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <Icon className="h-5 w-5 text-muted-foreground" />
-                      <span className="font-medium">{item.label}</span>
+                      <Icon className="h-5 w-5 text-muted-foreground" aria-hidden />
+                      <div>
+                        <div className="font-medium">{item.label}</div>
+                        <div className="text-xs text-muted-foreground">{item.description}</div>
+                      </div>
                     </div>
                   </Link>
                 )
@@ -176,7 +206,7 @@ export function Nav() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </>
   )
 }

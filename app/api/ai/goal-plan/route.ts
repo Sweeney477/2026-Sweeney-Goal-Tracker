@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import OpenAI from 'openai'
+import { getOpenAI, defaultOpenAIModel } from '@/lib/ai/openai'
 import { TrackingPlan } from '@/lib/types'
 import { checkRateLimit, recordRateLimit } from '@/lib/ai/rateLimit'
 
@@ -13,9 +13,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
+    const openai = getOpenAI()
 
     const supabase = await createClient()
     const {
@@ -56,7 +54,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const model = process.env.OPENAI_MODEL || 'gpt-4-turbo-preview'
+    const model = defaultOpenAIModel('gpt-4o-mini')
 
     const systemPrompt = `You are a goal tracking advisor. Given a user's goal in plain English, generate a comprehensive tracking plan with:
 - lagging_metric: The main outcome metric (e.g., "weight", "body fat percentage")

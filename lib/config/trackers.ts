@@ -1,0 +1,142 @@
+/**
+ * Daily tracker definitions for the personal OS.
+ *
+ * Dashboard tiles, streak rules, and check-in quick-log tiles read from here
+ * so forks can rename, reorder, or disable trackers without rewriting pages.
+ */
+import type { Profile } from '@/lib/types'
+import { weightUnitLabel, type UnitSystem } from '@/lib/units'
+
+/** Stored check-in `type` values in Supabase */
+export type CheckinType = 'weight' | 'steps' | 'calories' | 'coding_minutes' | 'workout'
+
+/** Quick-log tile ids on /check-ins (food maps to meals + calories) */
+export type QuickLogTileId = 'weight' | 'steps' | 'food' | 'workout' | 'code'
+
+export type TrackerDef = {
+  id: QuickLogTileId
+  /** Underlying checkin type when one exists */
+  checkinType?: CheckinType
+  label: string
+  helper: string
+  /** Soft tile wash */
+  accent: string
+  /** Show on dashboard "today" grid */
+  showOnDashboard: boolean
+  /** Counts toward daily completion ring */
+  countsTowardDailyWin: boolean
+  /** Used for streak calculation when enabled */
+  streakEligible: boolean
+  /** Profile field used as daily target */
+  goalKey?: keyof Pick<Profile, 'step_goal' | 'calorie_goal' | 'coding_goal_minutes'>
+  /** Query param alias from dashboard deep links */
+  queryAliases: string[]
+  metricLabel: (units: UnitSystem) => string
+  formatDisplay: (value: unknown, units: UnitSystem) => string
+}
+
+export const trackers: TrackerDef[] = [
+  {
+    id: 'weight',
+    checkinType: 'weight',
+    label: 'Weight',
+    helper: 'Tap to log today’s weight',
+    accent: 'from-teal-500/10 to-teal-500/20',
+    showOnDashboard: true,
+    countsTowardDailyWin: true,
+    streakEligible: true,
+    queryAliases: ['weight'],
+    metricLabel: (units) => weightUnitLabel(units),
+    formatDisplay: (value, units) =>
+      value == null || value === '' ? '—' : `${value} ${weightUnitLabel(units)}`,
+  },
+  {
+    id: 'steps',
+    checkinType: 'steps',
+    label: 'Steps',
+    helper: 'Auto-fills with today’s steps if present',
+    accent: 'from-emerald-500/10 to-emerald-500/20',
+    showOnDashboard: true,
+    countsTowardDailyWin: true,
+    streakEligible: false,
+    goalKey: 'step_goal',
+    queryAliases: ['steps'],
+    metricLabel: () => 'steps',
+    formatDisplay: (value) =>
+      value == null || value === '' ? '—' : Number(value).toLocaleString(),
+  },
+  {
+    id: 'food',
+    checkinType: 'calories',
+    label: 'Food',
+    helper: 'Save a quick meal with calories & name',
+    accent: 'from-amber-500/10 to-amber-500/20',
+    showOnDashboard: true,
+    countsTowardDailyWin: true,
+    streakEligible: false,
+    goalKey: 'calorie_goal',
+    queryAliases: ['calories', 'food'],
+    metricLabel: () => 'cal',
+    formatDisplay: (value) => (value == null || value === '' ? '—' : String(value)),
+  },
+  {
+    id: 'workout',
+    checkinType: 'workout',
+    label: 'Workout',
+    helper: 'Remembers your last workout type',
+    accent: 'from-sky-500/10 to-sky-500/20',
+    showOnDashboard: false,
+    countsTowardDailyWin: true,
+    streakEligible: false,
+    queryAliases: ['workout'],
+    metricLabel: () => 'type',
+    formatDisplay: (value) => (value == null || value === '' ? '—' : String(value)),
+  },
+  {
+    id: 'code',
+    checkinType: 'coding_minutes',
+    label: 'Coding',
+    helper: 'Quickly log coding minutes + project',
+    accent: 'from-cyan-500/10 to-cyan-500/20',
+    showOnDashboard: true,
+    countsTowardDailyWin: true,
+    streakEligible: false,
+    goalKey: 'coding_goal_minutes',
+    queryAliases: ['coding_minutes', 'code', 'coding'],
+    metricLabel: () => 'min',
+    formatDisplay: (value) => {
+      if (value == null || value === '' || value === 0) return '—'
+      const minutes = Number(value)
+      if (Number.isNaN(minutes)) return '—'
+      return `${(minutes / 60).toFixed(1)} hr`
+    },
+  },
+]
+
+export function dashboardTrackers() {
+  return trackers.filter((t) => t.showOnDashboard)
+}
+
+export function dailyWinTrackers() {
+  return trackers.filter((t) => t.countsTowardDailyWin)
+}
+
+export function streakTracker() {
+  return trackers.find((t) => t.streakEligible) ?? null
+}
+
+export function trackerById(id: QuickLogTileId) {
+  return trackers.find((t) => t.id === id)
+}
+
+export function trackerFromQuery(type: string | null | undefined): QuickLogTileId | null {
+  if (!type) return null
+  const normalized = type.toLowerCase()
+  const match = trackers.find((t) => t.queryAliases.includes(normalized) || t.id === normalized)
+  return match?.id ?? null
+}
+
+export function focusTileIds(): QuickLogTileId[] {
+  // Primary focus grid excludes food (secondary quick-log), matching current UX
+  return trackers.filter((t) => t.countsTowardDailyWin && t.id !== 'food').map((t) => t.id)
+}

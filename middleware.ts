@@ -1,5 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isModuleEnabled } from '@/lib/config/modules'
+import { moduleIdFromPath } from '@/lib/config/module-path'
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '/goal'
 
@@ -9,6 +11,23 @@ export async function middleware(request: NextRequest) {
       headers: request.headers,
     },
   })
+
+  const pathname = request.nextUrl.pathname
+  const path =
+    pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) || '/' : pathname
+
+  // Disabled feature modules redirect to dashboard (config-driven forks).
+  const moduleId = moduleIdFromPath(path)
+  if (moduleId && moduleId !== 'dashboard' && !isModuleEnabled(moduleId)) {
+    const url = request.nextUrl.clone()
+    url.pathname = `${BASE_PATH}/dashboard`
+    return NextResponse.redirect(url)
+  }
+
+  // Local visual-review / screenshot tours — skip live Supabase auth.
+  if (process.env.NEXT_PUBLIC_VISUAL_REVIEW === '1' || process.env.VISUAL_REVIEW === '1') {
+    return response
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -62,9 +81,6 @@ export async function middleware(request: NextRequest) {
 
   // Handle onboarding redirect for authenticated users
   if (user) {
-    const pathname = request.nextUrl.pathname
-    const path =
-      pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) || '/' : pathname
     const isOnboardingPage = path === '/onboarding'
     const isAuthPage = path.startsWith('/auth/')
 

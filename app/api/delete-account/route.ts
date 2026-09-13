@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,33 +22,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Confirmation required' }, { status: 400 })
     }
 
-    // Delete all user data (cascade will handle related records)
-    // Note: This will also delete the user's auth account via Supabase
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id)
-
-    if (deleteError) {
-      // If admin delete fails, try manual cleanup
-      // Delete in order to respect foreign key constraints
-      await Promise.all([
-        supabase.from('checkins').delete().eq('user_id', user.id),
-        supabase.from('meals').delete().eq('user_id', user.id),
-        supabase.from('workouts').delete().eq('user_id', user.id),
-        supabase.from('photos').delete().eq('user_id', user.id),
-        supabase.from('projects').delete().eq('user_id', user.id),
-        supabase.from('goals').delete().eq('user_id', user.id),
-        supabase.from('exercises_library').delete().eq('user_id', user.id),
-        supabase.from('rate_limits').delete().eq('user_id', user.id),
-        supabase.from('profiles').delete().eq('user_id', user.id),
-      ])
-
-      // Sign out the user
-      await supabase.auth.signOut()
+    const admin = createAdminClient()
+    if (!admin) {
+      return NextResponse.json(
+        {
+          error:
+            'Account deletion requires SUPABASE_SERVICE_ROLE_KEY on the server. Data was not deleted.',
+        },
+        { status: 503 }
+      )
     }
 
+    // auth.users ON DELETE CASCADE removes profile/checkins/goals/etc.
+    const { error: deleteError } = await admin.auth.admin.deleteUser(user.id)
+    if (deleteError) {
+      console.error('Error deleting auth user:', deleteError)
+      return NextResponse.json({ error: 'Failed to delete account' }, { status: 500 })
+    }
+
+    await supabase.auth.signOut()
+
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting account:', error)
     return NextResponse.json({ error: 'Failed to delete account' }, { status: 500 })
   }
 }
-

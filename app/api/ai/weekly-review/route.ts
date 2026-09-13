@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import OpenAI from 'openai'
+import { getOpenAI, defaultOpenAIModel } from '@/lib/ai/openai'
 import { WeeklyReview } from '@/lib/types'
 import { checkRateLimit, recordRateLimit } from '@/lib/ai/rateLimit'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 export async function POST(request: NextRequest) {
   try {
@@ -91,7 +88,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const model = process.env.OPENAI_MODEL || 'gpt-4-turbo-preview'
+    const model = defaultOpenAIModel('gpt-4o-mini')
 
     const systemPrompt = `You are a personal coaching assistant. Analyze the user's recent tracking data and generate a weekly review with:
 - wins: Array of positive observations and achievements (3-5 items)
@@ -124,7 +121,7 @@ ${JSON.stringify(projects || [], null, 2)}
 
 Generate a weekly review based on this data.`
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model,
       messages: [
         { role: 'system', content: systemPrompt },

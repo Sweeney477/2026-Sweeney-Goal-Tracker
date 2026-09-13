@@ -1,35 +1,42 @@
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
+import type { Metadata, Viewport } from 'next'
+import { Figtree, Space_Grotesk } from 'next/font/google'
+import { brand } from '@/lib/config/brand'
+import './globals.css'
 
-const inter = Inter({ subsets: ["latin"] })
+const sans = Figtree({
+  subsets: ['latin'],
+  variable: '--font-sans',
+})
+
+const display = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-display',
+})
 
 export const metadata: Metadata = {
-  title: "2026 Personal Tracker",
-  description: "A personal operating system for tracking goals, fitness, and projects",
-  manifest: "/manifest.webmanifest",
-  themeColor: "#ffffff",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-  },
+  title: brand.name,
+  description: brand.description,
+  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "2026 Personal Tracker",
+    statusBarStyle: 'default',
+    title: brand.name,
   },
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f8f6f1' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f1715' },
+  ],
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${sans.variable} ${display.variable} font-sans`}>{children}</body>
     </html>
   )
 }
-
