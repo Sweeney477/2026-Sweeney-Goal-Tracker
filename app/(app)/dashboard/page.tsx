@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import {
-  ArrowRight,
+  CalendarDays,
   CheckSquare,
   Code2,
   Dumbbell,
@@ -11,7 +11,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { WeightChart } from '@/components/weight-chart'
-import { SoftCard, ActivityCard, ProgressChip, toneFromPastel } from '@/components/soft-ui'
+import { SoftCard, ActivityCard, HeroActionCard, toneFromPastel } from '@/components/soft-ui'
 import { calculateDailyStreak } from '@/lib/checkins/streak'
 import { buildDailyWinChecklist } from '@/lib/checkins/domain'
 import { computeGoalProgress } from '@/lib/goals/progress'
@@ -221,110 +221,92 @@ export default async function DashboardPage() {
 
   const goalPastels = ['pastel-mint', 'pastel-lilac', 'pastel-sky'] as const
 
+
+  const complete = checklist.length > 0 && doneCount === checklist.length
+  const pad2 = (n: number) => String(Math.max(0, n)).padStart(2, '0')
+
   return (
-    <div className="space-y-7">
-      <div className="flex items-end justify-between gap-3">
+    <div className="space-y-6 md:space-y-8">
+      {/* Hello + Today’s summary + big activity count */}
+      <section className="space-y-5">
         <div>
-          <p className="text-sm text-muted-foreground">{formatLocalDay(timeZone, 'long')}</p>
-          <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight md:text-4xl">
+          <h1 className="font-display text-[1.85rem] font-semibold tracking-tight text-foreground md:text-4xl">
             Hello, {name}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">Today&apos;s summary</p>
+          <p className="mt-1 text-base text-muted-foreground md:text-lg">Today&apos;s summary</p>
         </div>
-        <div className="rounded-full bg-brand/10 px-3 py-1.5 text-xs font-semibold text-brand">
-          {doneCount}/{checklist.length} logged
-        </div>
-      </div>
 
-      <SoftCard tone="brand" className="relative overflow-hidden p-5 md:p-6">
-        <div className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="pointer-events-none absolute bottom-0 left-1/3 h-24 w-24 rounded-full bg-white/10 blur-xl" />
-        <div className="relative">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-foreground/75">
-            Next up
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-display text-4xl font-semibold tracking-tight md:text-5xl">
+                {pad2(doneCount)}
+              </span>
+              <span className="font-display text-3xl font-medium text-foreground/25 md:text-4xl">/</span>
+              <span className="font-display text-3xl font-medium text-foreground/30 md:text-4xl">
+                {pad2(checklist.length)}
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">Tot activities today</p>
           </div>
-          <div className="mt-2 font-display text-2xl font-semibold tracking-tight text-brand-foreground md:text-3xl">
-            {doneCount === checklist.length
-              ? 'Today looks complete'
-              : nextItem
-                ? `Log ${nextItem.label.toLowerCase()}`
-                : 'Start today’s log'}
+
+          <div className="flex flex-col items-end gap-2">
+            <div
+              className="grid h-11 w-11 place-items-center rounded-2xl bg-card shadow-soft ring-1 ring-border/50"
+              title={formatLocalDay(timeZone, 'long')}
+            >
+              <CalendarDays className="h-5 w-5 text-foreground/70" strokeWidth={1.6} aria-hidden />
+              <span className="sr-only">{formatLocalDay(timeZone, 'long')}</span>
+            </div>
+            {streak > 0 ? (
+              <div className="rounded-full bg-brand/10 px-2.5 py-1 text-[11px] font-semibold text-brand">
+                {streak}-day streak
+              </div>
+            ) : null}
           </div>
-          <p className="mt-2 max-w-md text-sm text-brand-foreground/80">
-            {doneCount === checklist.length
-              ? 'All leading metrics are in. Review goals or keep the streak going tomorrow.'
-              : nextItem?.helper || 'Capture the next leading metric for your local day.'}
-          </p>
-          <Link
-            href={nextItem?.href || '/check-ins'}
-            className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2.5 text-sm font-semibold text-brand shadow-soft"
-          >
-            {doneCount === checklist.length ? 'Open log' : 'Continue'}
-            <ArrowRight className="h-4 w-4" strokeWidth={2} />
-          </Link>
         </div>
-      </SoftCard>
+      </section>
 
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-display text-lg font-semibold tracking-tight">Your progress</h2>
-          <span className="text-xs text-muted-foreground">
-            {doneCount} of {checklist.length} today
-          </span>
-        </div>
-        <div className="hide-scrollbar -mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
-          <ProgressChip
-            label="Logged"
-            value={`${doneCount}/${checklist.length}`}
-            hint="Leading metrics"
-            tone="mint"
-          />
-          <ProgressChip
-            label="Steps"
-            value={stepsToday != null ? Number(stepsToday).toLocaleString() : '—'}
-            hint={
-              stepsToday != null
-                ? `${percentOfGoal(Number(stepsToday), stepGoal)}% of goal`
-                : 'No log yet'
-            }
-            tone="butter"
-            href="/check-ins?type=steps"
-          />
-          <ProgressChip
-            label="Calories"
-            value={caloriesToday ?? '—'}
-            hint={caloriesToday != null ? `Goal ${calorieGoal}` : 'No meals yet'}
-            tone="peach"
-            href="/check-ins?type=food"
-          />
-          <ProgressChip
-            label="Coding"
-            value={codingToday != null ? `${(Number(codingToday) / 60).toFixed(1)}h` : '—'}
-            hint={
-              codingToday != null
-                ? `${percentOfGoal(Number(codingToday), codingGoal)}% of goal`
-                : 'No log yet'
-            }
-            tone="sky"
-            href="/check-ins?type=coding_minutes"
-          />
-          <ProgressChip
-            label="Streak"
-            value={`${streak}d`}
-            hint={streakDef ? `${streakDef.label} consecutive` : 'Local days'}
-            tone="lilac"
-          />
-        </div>
-      </div>
+      {/* Soft white featured hero + orb + CTA */}
+      <HeroActionCard
+        eyebrow={complete ? 'Today' : 'Focus'}
+        title={
+          complete
+            ? 'Today looks complete'
+            : nextItem
+              ? `Log ${nextItem.label.toLowerCase()}`
+              : 'Start today’s log'
+        }
+        description={
+          complete
+            ? 'All leading metrics are in. Keep the calm streak going tomorrow.'
+            : nextItem?.helper || 'Capture the next leading metric for your local day.'
+        }
+        meta={
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+            <span>
+              Progress{' '}
+              <strong className="font-semibold text-foreground">
+                {doneCount}/{checklist.length}
+              </strong>
+            </span>
+            <span className="text-foreground/35">·</span>
+            <span>{formatLocalDay(timeZone, 'long')}</span>
+          </div>
+        }
+        ctaLabel={complete ? 'Open today’s log' : 'Start today’s session'}
+        href={nextItem?.href || '/check-ins'}
+      />
 
-      <div>
-        <div className="mb-3 flex items-center justify-between">
+      {/* 2-column pastel activity grid — dominant surface */}
+      <section>
+        <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="font-display text-lg font-semibold tracking-tight">Today&apos;s routine</h2>
           <Link href="/check-ins" className="text-sm font-medium text-brand">
             Open log
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
           {activityCards.map((card) => (
             <ActivityCard
               key={card.tracker.id}
@@ -339,10 +321,25 @@ export default async function DashboardPage() {
             />
           ))}
         </div>
-      </div>
+      </section>
 
-      <div className="grid gap-4 lg:grid-cols-5">
-        <SoftCard className="p-5 lg:col-span-3">
+      {/* Secondary soft surfaces */}
+      <section className="grid gap-3 md:grid-cols-5 md:gap-4">
+        <SoftCard tone="peach" className="p-5 md:col-span-2">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/45">
+            {streakDef ? `${streakDef.label} streak` : 'Logging streak'}
+          </div>
+          <div className="mt-4 flex items-baseline gap-2">
+            <div className="font-display text-5xl font-semibold tracking-tight">{streak}</div>
+            <div className="text-sm font-medium text-foreground/45">days</div>
+          </div>
+          <div className="mt-4 flex items-center gap-2 text-xs text-foreground/50">
+            <TrendingUp className="h-3.5 w-3.5" strokeWidth={1.75} />
+            <span>Local days · {timeZone}</span>
+          </div>
+        </SoftCard>
+
+        <SoftCard className="p-5 md:col-span-3">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm font-semibold">Weight trend</div>
@@ -358,89 +355,68 @@ export default async function DashboardPage() {
             <WeightChart data={chartData} unit={weightUnitLabel(units)} />
           </div>
         </SoftCard>
+      </section>
 
-        <SoftCard tone="peach" className="p-5 lg:col-span-2">
-          <div className="text-sm font-semibold">
-            {streakDef ? `${streakDef.label} streak` : 'Logging streak'}
-          </div>
-          <div className="mt-1 text-xs text-muted-foreground">Consecutive local days</div>
-          <div className="mt-6 flex items-baseline gap-2">
-            <div className="font-display text-5xl font-semibold tracking-tight">{streak}</div>
-            <div className="text-sm font-medium text-muted-foreground">days</div>
-          </div>
-          <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-            <TrendingUp className="h-3.5 w-3.5" strokeWidth={1.75} />
-            <span>{timeZone}</span>
-          </div>
-        </SoftCard>
-      </div>
-
-      <SoftCard className="p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="font-display text-lg font-semibold tracking-tight">Active goals</div>
-            <div className="text-xs text-muted-foreground">
-              Outcome progress when a target is linked
-            </div>
-          </div>
+      {/* Goals as pastel tiles */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold tracking-tight">Active goals</h2>
           <Link href="/goals" className="text-sm font-medium text-brand">
             View all
           </Link>
         </div>
 
-        <div className="mt-4 space-y-3">
-          {activeGoals.length === 0 ? (
-            <div className="rounded-[1.5rem] bg-muted/50 px-5 py-8 text-center">
-              <div className="font-display text-base font-semibold">No active goals</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Add a goal to track outcomes alongside daily logs.
-              </p>
-              <Link
-                href="/goals/new"
-                className="mt-4 inline-flex h-10 items-center justify-center rounded-full bg-brand px-4 text-sm font-medium text-brand-foreground"
+        {activeGoals.length === 0 ? (
+          <SoftCard tone="butter" className="px-5 py-8 text-center">
+            <div className="font-display text-base font-semibold">No active goals</div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Add a goal to track outcomes alongside daily logs.
+            </p>
+            <Link
+              href="/goals/new"
+              className="mt-4 inline-flex h-10 items-center justify-center rounded-full bg-brand px-4 text-sm font-medium text-brand-foreground"
+            >
+              Create goal
+            </Link>
+          </SoftCard>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {activeGoals.slice(0, 3).map((goal, idx) => (
+              <div
+                key={goal.id}
+                className={`rounded-[1.75rem] p-4 shadow-soft ${goalPastels[idx % goalPastels.length]}`}
               >
-                Create goal
-              </Link>
-            </div>
-          ) : (
-            activeGoals.slice(0, 3).map((goal, idx) => (
-              <div key={goal.id} className={`rounded-[1.35rem] p-4 ${goalPastels[idx % goalPastels.length]}`}>
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-semibold">{goal.title}</div>
-                    <div className="text-xs text-muted-foreground">{goal.progress.outcomeLabel}</div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold">{goal.title}</div>
+                    <div className="mt-0.5 text-xs text-foreground/50">{goal.progress.outcomeLabel}</div>
                   </div>
-                  <div className="text-right text-xs font-semibold">
-                    {goal.progress.outcomePercent != null ? (
-                      <div className="text-brand">{goal.progress.outcomePercent}%</div>
-                    ) : null}
-                    {goal.progress.timeElapsedPercent != null ? (
-                      <div className="font-normal text-muted-foreground">
-                        {goal.progress.timeElapsedPercent}% time
-                      </div>
-                    ) : null}
-                  </div>
+                  {goal.progress.outcomePercent != null ? (
+                    <div className="font-display text-lg font-semibold text-brand">
+                      {goal.progress.outcomePercent}%
+                    </div>
+                  ) : null}
                 </div>
                 {goal.progress.outcomePercent != null ? (
-                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/60">
+                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/55">
                     <div
                       className="h-full rounded-full bg-brand"
                       style={{ width: `${goal.progress.outcomePercent}%` }}
                     />
                   </div>
                 ) : goal.progress.timeElapsedPercent != null ? (
-                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/60">
+                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/55">
                     <div
-                      className="h-full rounded-full bg-muted-foreground/40"
+                      className="h-full rounded-full bg-foreground/25"
                       style={{ width: `${goal.progress.timeElapsedPercent}%` }}
                     />
                   </div>
                 ) : null}
               </div>
-            ))
-          )}
-        </div>
-      </SoftCard>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   )
 }

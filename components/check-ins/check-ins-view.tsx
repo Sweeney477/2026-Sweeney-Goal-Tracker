@@ -283,55 +283,102 @@ export function CheckInsView() {
     return <LoadingState label="Loading check-ins" />
   }
 
+
+  const complete = focusTiles.length > 0 && doneToday === focusTiles.length
+  const nextTile = focusTiles.find((t) => !isTileDone(t)) || focusTiles[0] || null
+  const nextMeta = nextTile ? tileMeta(nextTile) : null
+  const pad2 = (n: number) => String(Math.max(0, n)).padStart(2, '0')
+
   return (
-    <div className="space-y-7">
-      <div className="flex items-end justify-between gap-3">
+    <div className="space-y-6 md:space-y-8">
+      <section className="space-y-5">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Log</p>
-          <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight md:text-4xl">
+          <h1 className="font-display text-[1.85rem] font-semibold tracking-tight md:text-4xl">
             {displayName ? `Hello, ${displayName}` : 'Daily log'}
           </h1>
+          <p className="mt-1 text-base text-muted-foreground">Today&apos;s summary</p>
           <DayContext timeZone={timeZone} showZone className="mt-1.5" />
         </div>
-        {streak > 0 ? (
-          <div className="rounded-full bg-brand/10 px-3 py-1.5 text-xs font-semibold text-brand">
-            {streak}-day streak
-          </div>
-        ) : null}
-      </div>
 
-      <SoftCard tone="brand" className="relative overflow-hidden p-5 md:p-6">
-        <div className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative flex items-start justify-between gap-4">
+        <div className="flex items-end justify-between gap-4">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-foreground/75">
-              Today&apos;s progress
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-display text-4xl font-semibold tracking-tight md:text-5xl">
+                {pad2(doneToday)}
+              </span>
+              <span className="font-display text-3xl font-medium text-foreground/25 md:text-4xl">/</span>
+              <span className="font-display text-3xl font-medium text-foreground/30 md:text-4xl">
+                {pad2(focusTiles.length)}
+              </span>
             </div>
-            <div className="mt-2 font-display text-2xl font-semibold tracking-tight text-brand-foreground md:text-3xl">
-              {doneToday} of {focusTiles.length} logged
-            </div>
-            <p className="mt-2 max-w-sm text-sm text-brand-foreground/80">
-              Finish the checklist when you can — incomplete days stay visible in history.
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">Tot activities logged</p>
           </div>
+          {streak > 0 ? (
+            <div className="rounded-full bg-brand/10 px-3 py-1.5 text-xs font-semibold text-brand">
+              {streak}-day streak
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      <SoftCard className="p-0">
+        <div className="relative overflow-hidden px-5 pb-4 pt-5 md:px-6 md:pt-6">
           <div
-            className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white/15 text-sm font-semibold text-brand-foreground"
-            aria-label={`${focusPct} percent complete`}
-          >
-            {focusPct}%
+            className="pointer-events-none absolute -right-4 top-0 h-36 w-36 rounded-full opacity-90 blur-2xl"
+            style={{
+              background:
+                'radial-gradient(circle at 40% 40%, hsl(265 70% 78% / 0.55), transparent 62%), radial-gradient(circle at 70% 70%, hsl(22 90% 72% / 0.45), transparent 58%)',
+            }}
+            aria-hidden
+          />
+          <div className="relative max-w-[80%]">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {complete ? 'Today' : 'Focus'}
+            </div>
+            <div className="font-display mt-2 text-2xl font-semibold tracking-tight md:text-[1.75rem]">
+              {complete
+                ? 'Log looks complete'
+                : nextMeta
+                  ? `Log ${nextMeta.label.toLowerCase()}`
+                  : 'Start today’s log'}
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {complete
+                ? 'All leading metrics are in. Tap a card below to update any value.'
+                : nextMeta?.helper || 'Capture the next leading metric for your local day.'}
+            </p>
+            <div className="mt-3 text-xs text-muted-foreground">
+              Progress{' '}
+              <strong className="font-semibold text-foreground">
+                {doneToday}/{focusTiles.length}
+              </strong>
+              <span className="mx-2 text-foreground/35">·</span>
+              {focusPct}%
+            </div>
           </div>
         </div>
-        <div className="relative mt-5 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
-          <div className="h-full rounded-full bg-white transition-all" style={{ width: `${focusPct}%` }} />
-        </div>
+        <button
+          type="button"
+          onClick={() => nextTile && setActiveTile(nextTile)}
+          className="relative flex w-full items-center justify-between gap-3 border-t border-border/50 px-5 py-3.5 text-sm font-semibold text-brand transition-colors hover:bg-muted/30 md:px-6"
+        >
+          <span>
+            {complete
+              ? 'Review metrics'
+              : nextMeta
+                ? `Log ${nextMeta.label}`
+                : 'Open a metric'}
+          </span>
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-brand/10">→</span>
+        </button>
       </SoftCard>
 
-      <div>
+      <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold tracking-tight">Today&apos;s metrics</h2>
           <span className="text-xs text-muted-foreground">Tap a card to log</span>
         </div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
           {focusTiles.map((tile) => {
             const meta = tileMeta(tile)
             const isDone = isTileDone(tile)
@@ -347,12 +394,12 @@ export function CheckInsView() {
                 icon={tileIcon(tile)}
                 tone={isActive ? 'brand' : tone}
                 done={isDone}
-                className={isActive ? 'ring-2 ring-brand/30' : undefined}
+                className={isActive ? 'ring-2 ring-brand/25' : undefined}
               />
             )
           })}
         </div>
-      </div>
+      </section>
 
       {activeTile ? (
         <SoftCard className="p-5">
@@ -363,7 +410,7 @@ export function CheckInsView() {
         </SoftCard>
       ) : null}
 
-      <div>
+      <section>
         <h2 className="mb-3 font-display text-lg font-semibold tracking-tight">Recent activity</h2>
         <SoftCard className="p-5">
           {recentActivity.length === 0 ? (
@@ -402,7 +449,7 @@ export function CheckInsView() {
             </div>
           )}
         </SoftCard>
-      </div>
+      </section>
     </div>
   )
 }

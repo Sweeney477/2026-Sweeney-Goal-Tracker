@@ -87,7 +87,7 @@ export function Nav() {
           </div>
           <div>
             <div className="font-display text-sm font-semibold">{brand.name}</div>
-            <div className="text-xs text-muted-foreground">Personal OS</div>
+            <div className="text-xs text-muted-foreground">Today · Log · Goals</div>
           </div>
         </div>
         <div className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-3">
@@ -145,8 +145,8 @@ export function Nav() {
       </nav>
 
       <nav aria-label="Primary" className="pointer-events-none fixed inset-x-0 bottom-0 z-40 md:hidden">
-        <div className="pointer-events-auto mx-auto mb-[max(0.75rem,env(safe-area-inset-bottom))] max-w-md px-4">
-          <div className="glass-pill flex items-center justify-between gap-1 rounded-full px-2 py-2">
+        <div className="pointer-events-auto mx-auto mb-[max(0.85rem,env(safe-area-inset-bottom))] max-w-md px-5">
+          <div className="glass-pill flex items-center justify-between gap-0.5 rounded-full px-1.5 py-1.5">
             {primaryItems.map((item) => {
               const Icon = iconMap[item.icon]
               const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
