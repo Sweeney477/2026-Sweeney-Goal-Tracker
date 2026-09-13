@@ -13,14 +13,16 @@ export type CheckinType = 'weight' | 'steps' | 'calories' | 'coding_minutes' | '
 /** Quick-log tile ids on /check-ins (food maps to meals + calories) */
 export type QuickLogTileId = 'weight' | 'steps' | 'food' | 'workout' | 'code'
 
+export type SoftPastel = 'pastel-mint' | 'pastel-peach' | 'pastel-lilac' | 'pastel-butter' | 'pastel-sky' | 'pastel-rose'
+
 export type TrackerDef = {
   id: QuickLogTileId
   /** Underlying checkin type when one exists */
   checkinType?: CheckinType
   label: string
   helper: string
-  /** Soft tile wash */
-  accent: string
+  /** Soft pastel fill utility class */
+  accent: SoftPastel
   /** Show on dashboard "today" grid */
   showOnDashboard: boolean
   /** Counts toward daily completion ring */
@@ -40,8 +42,8 @@ export const trackers: TrackerDef[] = [
     id: 'weight',
     checkinType: 'weight',
     label: 'Weight',
-    helper: 'Tap to log today’s weight',
-    accent: 'from-teal-500/10 to-teal-500/20',
+    helper: 'Log today’s weight',
+    accent: 'pastel-mint',
     showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: true,
@@ -54,8 +56,8 @@ export const trackers: TrackerDef[] = [
     id: 'steps',
     checkinType: 'steps',
     label: 'Steps',
-    helper: 'Auto-fills with today’s steps if present',
-    accent: 'from-emerald-500/10 to-emerald-500/20',
+    helper: 'Log today’s steps',
+    accent: 'pastel-butter',
     showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: false,
@@ -69,8 +71,8 @@ export const trackers: TrackerDef[] = [
     id: 'food',
     checkinType: 'calories',
     label: 'Food',
-    helper: 'Save a quick meal with calories & name',
-    accent: 'from-amber-500/10 to-amber-500/20',
+    helper: 'Log a meal with calories',
+    accent: 'pastel-peach',
     showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: false,
@@ -83,9 +85,9 @@ export const trackers: TrackerDef[] = [
     id: 'workout',
     checkinType: 'workout',
     label: 'Workout',
-    helper: 'Remembers your last workout type',
-    accent: 'from-sky-500/10 to-sky-500/20',
-    showOnDashboard: false,
+    helper: 'Log today’s workout',
+    accent: 'pastel-lilac',
+    showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: false,
     queryAliases: ['workout'],
@@ -96,8 +98,8 @@ export const trackers: TrackerDef[] = [
     id: 'code',
     checkinType: 'coding_minutes',
     label: 'Coding',
-    helper: 'Quickly log coding minutes + project',
-    accent: 'from-cyan-500/10 to-cyan-500/20',
+    helper: 'Log coding minutes',
+    accent: 'pastel-sky',
     showOnDashboard: true,
     countsTowardDailyWin: true,
     streakEligible: false,
@@ -137,6 +139,23 @@ export function trackerFromQuery(type: string | null | undefined): QuickLogTileI
 }
 
 export function focusTileIds(): QuickLogTileId[] {
-  // Primary focus grid excludes food (secondary quick-log), matching current UX
-  return trackers.filter((t) => t.countsTowardDailyWin && t.id !== 'food').map((t) => t.id)
+  return trackers.filter((t) => t.countsTowardDailyWin).map((t) => t.id)
+}
+
+export function pastelTone(accent: SoftPastel): 'mint' | 'peach' | 'lilac' | 'butter' | 'sky' | 'rose' {
+  switch (accent) {
+    case 'pastel-peach':
+      return 'peach'
+    case 'pastel-lilac':
+      return 'lilac'
+    case 'pastel-butter':
+      return 'butter'
+    case 'pastel-sky':
+      return 'sky'
+    case 'pastel-rose':
+      return 'rose'
+    case 'pastel-mint':
+    default:
+      return 'mint'
+  }
 }

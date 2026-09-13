@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { format } from 'date-fns'
+import { localDateTimeValue, localDayKey, resolveTimezone } from '@/lib/dates'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/ui/toast'
 import {
@@ -18,7 +19,7 @@ import {
   type MealWithUrl,
 } from '@/lib/meals/api'
 
-const defaultDateTime = () => format(new Date(), "yyyy-MM-dd'T'HH:mm")
+const defaultDateTime = (tz?: string) => localDateTimeValue(resolveTimezone(tz))
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
 const MEALS_PER_PAGE = 10
 
@@ -46,6 +47,7 @@ export function useMeals() {
   const [editingMeal, setEditingMeal] = useState<MealWithUrl | null>(null)
   const [deletingMeal, setDeletingMeal] = useState<string | null>(null)
   const [calorieGoal, setCalorieGoal] = useState(2200)
+  const [timeZone, setTimeZone] = useState(() => resolveTimezone())
 
   useEffect(() => {
     loadMeals(1, false)
@@ -64,6 +66,10 @@ export function useMeals() {
         if (data?.calorie_goal) {
           setCalorieGoal(data.calorie_goal)
         }
+        const { data: profile } = await supabase.from('profiles').select('timezone').eq('user_id', user.id).maybeSingle()
+        const tz = resolveTimezone(profile?.timezone)
+        setTimeZone(tz)
+        setConsumedAt((prev) => prev || defaultDateTime(tz))
       } catch (err) {
         console.error('Error loading calorie goal:', err)
       }
@@ -307,9 +313,9 @@ export function useMeals() {
     }
   }
 
-  const todayKey = format(new Date(), 'yyyy-MM-dd')
+  const todayKey = localDayKey(timeZone)
   const caloriesToday = meals
-    .filter((m) => format(new Date(m.consumed_at), 'yyyy-MM-dd') === todayKey)
+    .filter((m) => localDayKey(timeZone, new Date(m.consumed_at)) === todayKey)
     .reduce((sum, m) => sum + (m.calories || 0), 0)
   const remaining = Math.max(0, calorieGoal - caloriesToday)
   const eatenPct = Math.max(0, Math.min(100, Math.round((caloriesToday / calorieGoal) * 100)))
@@ -322,6 +328,7 @@ export function useMeals() {
     estimating,
     hasMore,
     calorieGoal,
+    timeZone,
     caloriesToday,
     remaining,
     eatenPct,

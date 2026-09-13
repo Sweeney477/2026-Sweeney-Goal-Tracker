@@ -33,6 +33,14 @@ const config = {
           deep: 'hsl(var(--brand-deep))',
           foreground: 'hsl(var(--brand-foreground))',
         },
+        pastel: {
+          mint: 'hsl(var(--pastel-mint))',
+          peach: 'hsl(var(--pastel-peach))',
+          lilac: 'hsl(var(--pastel-lilac))',
+          butter: 'hsl(var(--pastel-butter))',
+          sky: 'hsl(var(--pastel-sky))',
+          rose: 'hsl(var(--pastel-rose))',
+        },
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
@@ -64,8 +72,14 @@ const config = {
       },
       borderRadius: {
         lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        md: 'calc(var(--radius) - 4px)',
+        sm: 'calc(var(--radius) - 8px)',
+        soft: '1.75rem',
+        pill: '9999px',
+      },
+      boxShadow: {
+        soft: 'var(--shadow-soft)',
+        lift: 'var(--shadow-lift)',
       },
       keyframes: {
         'accordion-down': {
@@ -77,18 +91,19 @@ const config = {
           to: { height: '0' },
         },
         'fade-up': {
-          from: { opacity: '0', transform: 'translateY(8px)' },
+          from: { opacity: '0.92', transform: 'translateY(4px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
         'soft-pulse': {
           '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.7' },
+          '50%': { opacity: '0.85' },
         },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'fade-up': 'fade-up 0.45s ease-out both',
+        /* Mild entrance — never starts fully transparent (washed flash) */
+        'fade-up': 'fade-up 0.28s ease-out both',
         'soft-pulse': 'soft-pulse 2.4s ease-in-out infinite',
       },
     },

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { format } from 'date-fns'
-import { Plus, CheckCircle2, Zap, CalendarDays, MoreVertical, Check, X, Trash2, Edit2 } from 'lucide-react'
+import { Plus, CheckCircle2, CalendarDays, MoreVertical, Check, X, Trash2, Edit2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useProjects } from '@/lib/projects/use-projects'
@@ -16,7 +16,7 @@ const ProgressRing = ({ value }: { value: number }) => (
       cx="28"
       cy="28"
       r="22"
-      stroke="hsl(217 91% 60%)"
+      stroke="hsl(var(--brand))"
       strokeWidth="6"
       fill="none"
       strokeLinecap="round"
@@ -52,8 +52,7 @@ export function ProjectsView() {
     setShowAddMilestone,
     statusColors,
     dateRangeLabel,
-    xp,
-    level,
+    shippedCount,
     calculateProgress,
     handleSubmit,
     handleMilestoneToggle,
@@ -64,36 +63,33 @@ export function ProjectsView() {
   } = useProjects()
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between">
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold">Weekly Projects</h1>
-          <div className="mt-2 inline-flex items-center gap-2 rounded-2xl border bg-background px-3 py-2 text-sm text-muted-foreground">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Projects</h1>
+          <div className="mt-2 inline-flex items-center gap-2 rounded-xl border bg-card px-3 py-2 text-sm text-muted-foreground">
             <CalendarDays className="h-4 w-4" />
             {dateRangeLabel}
           </div>
         </div>
-        <div className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
-          <span className="inline-flex items-center gap-2">
-            <Zap className="h-4 w-4" /> Level {level}
-          </span>
-          <div className="text-[11px] font-medium opacity-90">
-            {xp.toLocaleString()} XP to lvl {level + 1}
+        {shippedCount > 0 ? (
+          <div className="rounded-full bg-muted px-3 py-1 text-xs font-semibold">
+            {shippedCount} shipped
           </div>
-        </div>
+        ) : null}
       </div>
 
       <button
         type="button"
         onClick={() => setShowNewForm(!showNewForm)}
-        className="flex w-full items-center justify-center gap-3 rounded-3xl bg-slate-950 px-5 py-4 text-white shadow-sm"
+        className="flex w-full items-center justify-center gap-3 rounded-2xl bg-brand px-5 py-4 text-brand-foreground"
       >
-        <span className="grid h-9 w-9 place-items-center rounded-2xl bg-white/15">
+        <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/15">
           <Plus className="h-5 w-5" />
         </span>
         <div className="text-left">
-          <div className="text-lg font-semibold">New Project</div>
-          <div className="text-sm opacity-80">+50 XP Reward</div>
+          <div className="text-base font-semibold">New project</div>
+          <div className="text-sm text-brand-foreground/80">Plan this week&apos;s ship target</div>
         </div>
       </button>
 
@@ -197,7 +193,7 @@ export function ProjectsView() {
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-blue-600 transition-all"
+                      className="h-full rounded-full bg-brand transition-all"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
@@ -236,7 +232,7 @@ export function ProjectsView() {
                           checked={milestone.completed}
                           onChange={() => handleMilestoneToggle(project.id, milestone.id)}
                           disabled={project.status === 'shipped'}
-                          className="h-5 w-5 rounded border-2 border-input accent-blue-600 disabled:cursor-not-allowed"
+                          className="h-5 w-5 rounded border-2 border-input accent-[hsl(var(--brand))] disabled:cursor-not-allowed"
                         />
                         <span
                           className={cn(

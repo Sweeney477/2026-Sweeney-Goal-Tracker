@@ -4,55 +4,77 @@
 
 @layer base {
   :root {
-    /* Ink + teal personal OS (not generic purple / cream) */
-    --background: 40 33% 98%;
-    --foreground: 168 30% 10%;
+    /* Soft cream wellness canvas; teal remains the brand accent */
+    --background: 36 40% 97%;
+    --foreground: 168 22% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 168 30% 10%;
+    --card-foreground: 168 22% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 168 30% 10%;
-    --primary: 168 30% 10%;
-    --primary-foreground: 40 33% 98%;
-    --secondary: 166 20% 94%;
-    --secondary-foreground: 168 30% 12%;
-    --muted: 160 14% 93%;
+    --popover-foreground: 168 22% 14%;
+    --primary: 168 22% 14%;
+    --primary-foreground: 36 40% 97%;
+    --secondary: 166 18% 94%;
+    --secondary-foreground: 168 22% 16%;
+    --muted: 35 22% 93%;
     --muted-foreground: 168 10% 38%;
-    --accent: 166 28% 92%;
-    --accent-foreground: 168 30% 12%;
+    --accent: 166 24% 93%;
+    --accent-foreground: 168 22% 16%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 166 16% 86%;
-    --input: 166 16% 86%;
+    --border: 30 16% 90%;
+    --input: 30 16% 90%;
     --ring: 173 58% 32%;
-    --radius: 0.9rem;
+    --radius: 1.5rem;
+
     --brand: 173 58% 32%;
     --brand-deep: 176 62% 24%;
     --brand-foreground: 0 0% 100%;
+
+    /* Pastel category fills — richer so cards read colorful like the reference */
+    --pastel-mint: 152 48% 88%;
+    --pastel-peach: 18 78% 90%;
+    --pastel-lilac: 262 46% 91%;
+    --pastel-butter: 42 78% 88%;
+    --pastel-sky: 196 55% 90%;
+    --pastel-rose: 348 58% 91%;
+
+    --shadow-soft: 0 10px 30px -12px hsl(168 20% 20% / 0.12), 0 4px 12px -6px hsl(168 20% 20% / 0.08);
+    --shadow-lift: 0 18px 40px -16px hsl(168 20% 20% / 0.16), 0 8px 16px -10px hsl(168 20% 20% / 0.1);
   }
 
   .dark {
-    --background: 170 20% 7%;
-    --foreground: 40 20% 96%;
-    --card: 170 18% 9%;
-    --card-foreground: 40 20% 96%;
-    --popover: 170 18% 9%;
-    --popover-foreground: 40 20% 96%;
-    --primary: 40 20% 96%;
-    --primary-foreground: 170 20% 10%;
-    --secondary: 170 14% 14%;
-    --secondary-foreground: 40 20% 96%;
-    --muted: 170 12% 15%;
-    --muted-foreground: 165 10% 65%;
-    --accent: 170 14% 16%;
-    --accent-foreground: 40 20% 96%;
+    --background: 170 18% 8%;
+    --foreground: 40 18% 96%;
+    --card: 170 16% 11%;
+    --card-foreground: 40 18% 96%;
+    --popover: 170 16% 11%;
+    --popover-foreground: 40 18% 96%;
+    --primary: 40 18% 96%;
+    --primary-foreground: 170 18% 10%;
+    --secondary: 170 12% 15%;
+    --secondary-foreground: 40 18% 96%;
+    --muted: 170 10% 16%;
+    --muted-foreground: 165 10% 68%;
+    --accent: 170 12% 17%;
+    --accent-foreground: 40 18% 96%;
     --destructive: 0 55% 40%;
     --destructive-foreground: 0 0% 100%;
-    --border: 170 12% 18%;
-    --input: 170 12% 18%;
+    --border: 170 10% 18%;
+    --input: 170 10% 18%;
     --ring: 173 50% 45%;
     --brand: 173 50% 42%;
     --brand-deep: 176 55% 32%;
     --brand-foreground: 0 0% 100%;
+
+    --pastel-mint: 158 20% 16%;
+    --pastel-peach: 22 28% 16%;
+    --pastel-lilac: 265 18% 17%;
+    --pastel-butter: 44 22% 16%;
+    --pastel-sky: 198 22% 16%;
+    --pastel-rose: 350 22% 16%;
+
+    --shadow-soft: 0 10px 30px -12px hsl(0 0% 0% / 0.45);
+    --shadow-lift: 0 18px 40px -16px hsl(0 0% 0% / 0.55);
   }
 }
 
@@ -71,18 +93,70 @@
   }
 }
 
-@layer utilities {
-  .app-dots {
-    background-image: radial-gradient(hsl(var(--foreground) / 0.07) 1px, transparent 1px);
-    background-size: 18px 18px;
-    background-position: 0 0;
+@layer components {
+  .soft-card {
+    @apply rounded-[1.75rem] bg-card text-card-foreground;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid hsl(var(--border) / 0.55);
   }
 
-  .app-soft {
+  .soft-card-flat {
+    @apply rounded-[1.75rem];
+    box-shadow: none;
+    border: none;
+  }
+
+  .glass-pill {
+    background: hsl(var(--card) / 0.78);
+    backdrop-filter: blur(22px) saturate(1.35);
+    -webkit-backdrop-filter: blur(22px) saturate(1.35);
+    box-shadow: var(--shadow-lift);
+    border: 1px solid hsl(0 0% 100% / 0.65);
+  }
+
+  .pastel-mint {
+    background-color: hsl(var(--pastel-mint));
+  }
+  .pastel-peach {
+    background-color: hsl(var(--pastel-peach));
+  }
+  .pastel-lilac {
+    background-color: hsl(var(--pastel-lilac));
+  }
+  .pastel-butter {
+    background-color: hsl(var(--pastel-butter));
+  }
+  .pastel-sky {
+    background-color: hsl(var(--pastel-sky));
+  }
+  .pastel-rose {
+    background-color: hsl(var(--pastel-rose));
+  }
+}
+
+@layer utilities {
+  .app-wash {
     background:
-      radial-gradient(1100px circle at 12% -10%, hsl(var(--brand) / 0.16), transparent 42%),
-      radial-gradient(900px circle at 100% 0%, hsl(176 45% 40% / 0.10), transparent 36%),
-      radial-gradient(800px circle at 50% 120%, hsl(40 40% 70% / 0.12), transparent 42%);
+      radial-gradient(820px circle at 8% -12%, hsl(22 85% 72% / 0.18), transparent 46%),
+      radial-gradient(700px circle at 92% 4%, hsl(265 70% 78% / 0.14), transparent 44%),
+      radial-gradient(640px circle at 70% 100%, hsl(152 45% 70% / 0.10), transparent 48%),
+      radial-gradient(900px circle at 40% 40%, hsl(var(--brand) / 0.04), transparent 55%);
+  }
+
+  .pb-nav {
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 

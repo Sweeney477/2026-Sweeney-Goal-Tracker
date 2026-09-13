@@ -201,7 +201,7 @@ export default function PhotosPage() {
         </div>
         <button
           type="button"
-          className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-50 text-blue-700"
+          className="grid h-11 w-11 place-items-center rounded-2xl bg-brand/10 text-brand"
           onClick={() => toast('Tip: Try to shoot with consistent lighting + pose.', 'info')}
           aria-label="Help"
         >
@@ -212,7 +212,7 @@ export default function PhotosPage() {
       {/* Capture card */}
       <div className="rounded-3xl border bg-background p-4 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-600 text-white">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-brand text-brand-foreground">
             <Camera className="h-5 w-5" />
           </div>
           <div className="flex-1">
@@ -226,11 +226,11 @@ export default function PhotosPage() {
             htmlFor="file"
             className={cn(
               'relative flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed bg-muted/20 p-4 text-center',
-              file ? 'border-blue-600/40 bg-blue-50/30' : 'border-blue-600/30'
+              file ? 'border-brand/40 bg-brand/10/30' : 'border-brand/30'
             )}
           >
             <div className="grid h-12 w-12 place-items-center rounded-2xl bg-background shadow-sm">
-              <Upload className="h-6 w-6 text-blue-600" />
+              <Upload className="h-6 w-6 text-brand" />
             </div>
             <div className="mt-3 text-sm font-semibold">Tap to upload photo</div>
             <div className="text-xs text-muted-foreground">or drag and drop here</div>
@@ -297,7 +297,7 @@ export default function PhotosPage() {
           <Button
             type="submit"
             disabled={uploading || !file}
-            className="h-12 w-full rounded-2xl bg-blue-600 text-white hover:bg-blue-600/90"
+            className="h-12 w-full rounded-2xl bg-brand text-brand-foreground hover:bg-brand-deep"
           >
             {uploading ? 'Uploading…' : 'Save Entry'}
           </Button>
@@ -308,7 +308,7 @@ export default function PhotosPage() {
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2">
           <div className="text-xl font-semibold">Photo Timeline</div>
-          <div className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
+          <div className="rounded-full bg-brand/10 px-2 py-1 text-xs font-semibold text-brand">
             {photos.length}
           </div>
         </div>
@@ -360,7 +360,7 @@ export default function PhotosPage() {
                 ) : (
                   <div className="h-56 w-full bg-muted" />
                 )}
-                <div className="absolute left-4 top-4 rounded-full bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white">
+                <div className="absolute left-4 top-4 rounded-full bg-brand px-2 py-1 text-[11px] font-semibold text-white">
                   NEWEST
                 </div>
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4 text-white">

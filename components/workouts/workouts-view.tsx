@@ -9,10 +9,14 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, Trash2 } from 'lucide-react'
 import { useWorkouts } from '@/lib/workouts/use-workouts'
 import type { EditableExercise } from '@/lib/workouts/types'
+import { DayContext } from '@/components/day-context'
+import { LoadingState } from '@/components/loading-state'
+import { dayRelativeLabel } from '@/lib/dates'
 
 export function WorkoutsView() {
   const {
     date,
+    timeZone,
     selectDate,
     workoutTitle,
     setWorkoutTitle,
@@ -44,7 +48,7 @@ export function WorkoutsView() {
   } = useWorkouts()
 
   const renderExerciseCard = (exercise: EditableExercise, exerciseIndex: number) => (
-    <div key={`${exercise.name}-${exerciseIndex}`} className="rounded-3xl border bg-background p-4 shadow-sm">
+    <div key={`${exercise.name}-${exerciseIndex}`} className="soft-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
@@ -173,13 +177,18 @@ export function WorkoutsView() {
   )
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold">Workout Builder</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Design your session for today.</p>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">Workouts</h1>
+        <DayContext timeZone={timeZone} dateKey={date} className="mt-1" />
+        <p className="mt-1 text-sm text-muted-foreground">
+          {dayRelativeLabel(date, timeZone) === 'Today'
+            ? 'Build today’s session.'
+            : `Editing ${date} (not today).`}
+        </p>
       </div>
 
-      <div className="rounded-3xl border bg-background p-4 shadow-sm">
+      <div className="soft-card p-4">
         <div className="grid grid-cols-1 gap-3">
           <div className="space-y-2">
             <Label htmlFor="title" className="text-xs font-semibold text-muted-foreground">
@@ -190,7 +199,7 @@ export function WorkoutsView() {
               value={workoutTitle}
               onChange={(e) => setWorkoutTitle(e.target.value)}
               placeholder="e.g., Upper Body Power"
-              className="h-12 rounded-2xl"
+              className="h-11 rounded-xl"
             />
           </div>
 
@@ -206,7 +215,7 @@ export function WorkoutsView() {
                 onChange={(e) => {
                   selectDate(e.target.value)
                 }}
-                className="h-12 rounded-2xl"
+                className="h-11 rounded-xl"
               />
             </div>
             <div className="space-y-2">
@@ -236,9 +245,9 @@ export function WorkoutsView() {
       </div>
 
       {loadingBuilder ? (
-        <div className="text-sm text-muted-foreground">Loading session…</div>
+        <LoadingState label="Loading workout" variant="list" className="py-2" />
       ) : exercises.length === 0 ? (
-        <div className="rounded-3xl border border-dashed bg-background p-6 text-center text-sm text-muted-foreground shadow-sm">
+        <div className="rounded-2xl bg-muted/40 p-6 text-center text-sm text-muted-foreground">
           No exercises yet. Tap &ldquo;Add Exercise&rdquo; to start building.
         </div>
       ) : (
@@ -248,17 +257,17 @@ export function WorkoutsView() {
       <div className="flex gap-3">
         <Button
           variant="outline"
-          className="h-12 flex-1 rounded-2xl"
+          className="h-11 flex-1 rounded-xl"
           onClick={resetSession}
         >
           Reset
         </Button>
         <Button
-          className="h-12 flex-[2] rounded-2xl bg-blue-600 text-white hover:bg-blue-600/90"
+          className="h-11 flex-[2] rounded-xl"
           onClick={handleSave}
           disabled={saving}
         >
-          {saving ? 'Saving…' : workoutId ? 'Update workout' : 'Save Workout'}
+          {saving ? 'Saving…' : workoutId ? 'Update workout' : 'Save workout'}
         </Button>
       </div>
 
@@ -272,7 +281,7 @@ export function WorkoutsView() {
 
         <div className="mt-3 space-y-3">
           {recentWorkouts.length === 0 ? (
-            <div className="rounded-3xl border bg-background p-5 text-center text-sm text-muted-foreground shadow-sm">
+            <div className="soft-card p-5 text-center text-sm text-muted-foreground">
               No workouts logged yet.
             </div>
           ) : (
@@ -280,7 +289,7 @@ export function WorkoutsView() {
               const volume = (workout.volume_json as WorkoutVolume | null) || null
               const exerciseCount = volume?.exercises?.length || 0
               return (
-                <div key={workout.id} className="rounded-3xl border bg-background p-4 shadow-sm">
+                <div key={workout.id} className="soft-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-base font-semibold">{workout.workout_type}</div>

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { WeeklyReview } from '@/lib/types'
-import { Sparkles, ChevronRight, Flame, Crown, Loader2 } from 'lucide-react'
+import { Sparkles, ChevronRight, Loader2 } from 'lucide-react'
 import { format, startOfWeek, addDays } from 'date-fns'
 import { toast } from '@/components/ui/toast'
 
@@ -63,54 +63,45 @@ export default function ReviewPage() {
   const focusScore = review ? Math.max(0, Math.min(10, 10 - risksCount * 1.2 + winsCount * 0.4)) : 0
 
   const weekXp = winsCount * 120
-  const xp = 2000 + weekXp - risksCount * 80
-  const nextXp = 3000
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-semibold">Weekly Review</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Weekly review</h1>
           <div className="mt-1 text-sm text-muted-foreground">{weekLabel}</div>
         </div>
       </div>
 
       {review ? (
-        <div className="rounded-3xl bg-gradient-to-br from-slate-950 to-slate-800 p-5 text-white shadow-sm">
+        <div className="rounded-2xl bg-brand p-5 text-brand-foreground">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <span className="h-2 w-2 rounded-full bg-emerald-300" />
             WEEKLY SUMMARY
           </div>
 
           <div className="mt-3 flex items-start justify-between gap-4">
             <div>
-              <div className="text-2xl font-semibold">
-                Consistency focus{' '}
-                <span className="inline-block align-middle">
-                  <Crown className="ml-1 inline h-5 w-5 text-yellow-300" />
-                </span>
+              <div className="font-display text-2xl font-semibold tracking-tight">
+                Consistency focus
               </div>
-              <div className="mt-3 rounded-2xl bg-white/10 p-4">
-                <div className="text-xs opacity-90">Review progress meter</div>
-                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/15">
+              <div className="mt-3 rounded-xl bg-white/10 p-4">
+                <div className="text-xs text-brand-foreground/85">Review coverage</div>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/15">
                   <div
-                    className="h-full rounded-full bg-blue-400"
-                    style={{ width: `${Math.max(0, Math.min(100, (xp / nextXp) * 100))}%` }}
+                    className="h-full rounded-full bg-white"
+                    style={{ width: `${completion}%` }}
                   />
                 </div>
                 <div className="mt-2 text-sm font-semibold">
-                  {xp.toLocaleString()} / {nextXp.toLocaleString()} XP
+                  {winsCount} win{winsCount === 1 ? '' : 's'} noted this week
                 </div>
                 <div className="mt-1 text-xs opacity-80">
                   {weekXp > 0
-                    ? `+${weekXp.toLocaleString()} XP from ${winsCount} win${winsCount === 1 ? '' : 's'} this week`
-                    : 'No win XP yet — keep logging and regenerate after a stronger week.'}
+                    ? 'Based on logged check-ins, goals, and shipped work.'
+                    : 'Log a fuller week, then regenerate for a stronger summary.'}
                 </div>
               </div>
-            </div>
-
-            <div className="grid h-16 w-16 place-items-center rounded-3xl bg-yellow-400/15 text-yellow-300">
-              <Flame className="h-7 w-7" />
             </div>
           </div>
         </div>
@@ -118,15 +109,15 @@ export default function ReviewPage() {
         <div className="rounded-3xl border bg-background p-5 shadow-sm">
           <div className="text-sm font-semibold">No review yet</div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Generate insights from your recent check-ins, goals, and projects. Scores and XP appear
-            after a review is created — nothing is faked beforehand.
+            Generate insights from your recent check-ins, goals, and projects. Scores appear
+            after a review is created — nothing is invented beforehand.
           </p>
         </div>
       )}
 
       {!review ? (
         <div className="rounded-3xl border border-dashed bg-background p-8 text-center shadow-sm">
-          <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-blue-50 text-blue-700">
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-brand/10 text-brand">
             <Sparkles className="h-8 w-8" />
           </div>
           <h2 className="mt-4 text-lg font-semibold">Generate Your Weekly Review</h2>
@@ -136,7 +127,7 @@ export default function ReviewPage() {
           <Button
             onClick={generateReview}
             disabled={loading}
-            className="mt-6 h-12 rounded-2xl bg-blue-600 text-white hover:bg-blue-600/90"
+            className="mt-6 h-12 rounded-2xl bg-brand text-brand-foreground hover:bg-brand-deep"
           >
             {loading ? (
               <>
@@ -159,7 +150,7 @@ export default function ReviewPage() {
           disabled={loading}
         >
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-50 text-blue-700">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-brand/10 text-brand">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
@@ -208,7 +199,7 @@ export default function ReviewPage() {
           <div className="mt-2 text-3xl font-semibold">{review ? focusScore.toFixed(1) : '—'}</div>
         </div>
         <div className="rounded-3xl border bg-background p-4 shadow-sm">
-          <div className="mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-blue-50 text-blue-700">
+          <div className="mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-brand/10 text-brand">
             ✓
           </div>
           <div className="flex items-center gap-2">
@@ -227,7 +218,7 @@ export default function ReviewPage() {
                 {
                   label: 'Health & Fitness',
                   value: Math.min(100, 60 + winsCount * 4),
-                  color: 'bg-blue-600',
+                  color: 'bg-brand',
                 },
                 {
                   label: 'Learning',

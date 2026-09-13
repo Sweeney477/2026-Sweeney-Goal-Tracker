@@ -7,7 +7,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        /** Brand teal — preferred primary CTA */
+        default:
+          "bg-brand text-brand-foreground hover:bg-brand-deep focus-visible:ring-brand",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
@@ -15,7 +17,10 @@ const buttonVariants = cva(
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-brand underline-offset-4 hover:underline",
+        /** Ink / high-contrast inverse when brand wash would clash */
+        solid:
+          "bg-foreground text-background hover:bg-foreground/90",
       },
       size: {
         default: "h-10 px-4 py-2",

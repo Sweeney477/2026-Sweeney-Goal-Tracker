@@ -16,7 +16,9 @@ export {
   trackerById,
   trackerFromQuery,
   focusTileIds,
+  pastelTone,
   type TrackerDef,
   type QuickLogTileId,
   type CheckinType,
+  type SoftPastel,
 } from './trackers'
