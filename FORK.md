@@ -47,10 +47,11 @@ Prefer extending these instead of growing page files.
 
 ## 5. Environment
 
-Copy `.env.example` (or create `.env.local`) with:
+Copy [`.env.example`](.env.example) to `.env.local` and fill in:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (server-only; required for Settings → Delete account)
 - `OPENAI_API_KEY` (optional until AI routes are used)
 - `OPENAI_MODEL` (defaults to `gpt-4o-mini`)
 
@@ -59,7 +60,9 @@ The app is served under `basePath` `/goal`.
 ## 6. Deploy checklist
 
 1. `npm install`
-2. Apply Supabase migrations in `supabase/migrations`
-3. `npm run build`
-4. Confirm `/goal/icons/icon-192.png` and `icon-512.png` resolve
-5. Sign in, complete onboarding, log a check-in
+2. Apply **all** Supabase migrations in `supabase/migrations` (`001`–`007`) in order
+3. Set env vars on Vercel (including service role if account deletion should work)
+4. `npm run build` (or `npx tsc --noEmit` then `npm run build`)
+5. Confirm `/goal/icons/icon-192.png` and `icon-512.png` resolve
+6. Sign in, complete onboarding, log a check-in
+7. In Supabase Auth settings, allow redirect URLs under `https://<host>/goal/auth/callback`

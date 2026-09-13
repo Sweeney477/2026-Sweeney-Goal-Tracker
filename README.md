@@ -46,13 +46,14 @@ npm install
 ```
 
 3. Set up environment variables:
-Create a `.env.local` file in the root directory:
+Copy [`.env.example`](.env.example) to `.env.local` and fill in values:
 ```env
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # server-only; account deletion
 
-# OpenAI
+# OpenAI (optional until AI features are used)
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_MODEL=gpt-4o-mini
 ```
@@ -61,10 +62,14 @@ For fork/brand/module configuration, see [`FORK.md`](FORK.md).
 
 4. Set up Supabase database:
    - In your Supabase dashboard, go to SQL Editor
-   - Run the migrations in order:
+   - Run **all** migrations in order (`001`–`007`):
      - `supabase/migrations/001_initial_schema.sql`
      - `supabase/migrations/002_storage_bucket.sql`
      - `supabase/migrations/003_meals.sql`
+     - `supabase/migrations/004_workouts_volume_and_exercises_library.sql`
+     - `supabase/migrations/005_rate_limits.sql`
+     - `supabase/migrations/006_profiles_targets.sql`
+     - `supabase/migrations/007_project_milestones.sql`
 
    Or use the Supabase CLI:
    ```bash
@@ -209,9 +214,10 @@ npm run build
 npm start
 ```
 
-### Linting
+### Typecheck & lint
 
 ```bash
+npm run typecheck
 npm run lint
 ```
 
@@ -221,7 +227,8 @@ npm run lint
 |----------|-------------|----------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL | Yes |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon/public key | Yes |
-| `OPENAI_API_KEY` | Your OpenAI API key | Yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key for account deletion (server-only) | For delete-account |
+| `OPENAI_API_KEY` | Your OpenAI API key | For AI routes only |
 | `OPENAI_MODEL` | OpenAI model to use (default: gpt-4o-mini) | No |
 
 ## Security Notes

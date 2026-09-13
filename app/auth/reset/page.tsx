@@ -10,8 +10,6 @@ import { Label } from '@/components/ui/label'
 import { Lock } from 'lucide-react'
 import { brand } from '@/lib/config/brand'
 
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
-
 export default function ResetPasswordPage() {
   const supabase = createClient()
   const router = useRouter()
@@ -56,7 +54,8 @@ export default function ResetPasswordPage() {
       if (error) throw error
       setMessage('Password updated. Redirecting…')
       window.setTimeout(() => {
-        router.push(`${BASE_PATH}/dashboard`)
+        // Next.js router already applies basePath — do not prefix BASE_PATH here.
+        router.push('/dashboard')
       }, 800)
     } catch (error: any) {
       setMessage(error.message || 'Could not update password.')
