@@ -12,7 +12,6 @@ import { WeightChart } from '@/components/weight-chart'
 import { EmptyState } from '@/components/empty-state'
 import { MetricTile } from '@/components/metric-tile'
 import { PageHeader } from '@/components/page-header'
-import { DayContext } from '@/components/day-context'
 import { TodayChecklist } from '@/components/today-checklist'
 import { calculateDailyStreak } from '@/lib/checkins/streak'
 import { buildDailyWinChecklist } from '@/lib/checkins/domain'
@@ -197,14 +196,13 @@ export default async function DashboardPage() {
       <PageHeader
         eyebrow="Today"
         title={formatLocalDay(timeZone, 'long')}
-        description="Log leading metrics for the day."
+        description={`Local day · ${timeZone}`}
         action={
           <div className="rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand">
             {doneCount}/{checklist.length} logged
           </div>
         }
       />
-      <DayContext timeZone={timeZone} showZone className="-mt-4" />
 
       <TodayChecklist items={checklist} />
 

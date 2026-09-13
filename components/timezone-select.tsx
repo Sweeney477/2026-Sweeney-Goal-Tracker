@@ -47,7 +47,7 @@ export function TimezoneSelect({ id, value, onChange, className }: TimezoneSelec
         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        size={Math.min(8, Math.max(4, options.length))}
+        size={5}
       >
         {options.map((z) => (
           <option key={z.value} value={z.value}>

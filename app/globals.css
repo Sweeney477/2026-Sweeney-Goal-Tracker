@@ -85,13 +85,17 @@
       radial-gradient(700px circle at 100% 0%, hsl(176 40% 40% / 0.06), transparent 38%);
   }
 
-  /* Mobile bottom nav clearance (bar ~64px + home indicator) */
+  /* Mobile bottom nav clearance (bar ~72px + home indicator + breathing room) */
   .pb-nav {
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(7.25rem + env(safe-area-inset-bottom, 0px));
   }
 
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .mb-nav {
+    margin-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   }
 }
 

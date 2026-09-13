@@ -3,8 +3,6 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Plus, ChevronRight } from 'lucide-react'
 import { GoalPlanDisplay } from '@/components/goal-plan-display'
-import { localDayKey, resolveTimezone } from '@/lib/dates'
-import { calculateDailyStreak } from '@/lib/checkins/streak'
 import { EmptyState } from '@/components/empty-state'
 import { PageHeader } from '@/components/page-header'
 import { computeGoalProgress } from '@/lib/goals/progress'
@@ -23,15 +21,7 @@ export default async function GoalsPage() {
     return null
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('timezone')
-    .eq('user_id', user.id)
-    .maybeSingle()
-  const timeZone = resolveTimezone(profile?.timezone)
-  const today = localDayKey(timeZone)
-
-  const [{ data: goals, error }, { data: recentCheckins }, { data: weightCheckins }] = await Promise.all([
+  const [{ data: goals, error }, { data: recentCheckins }] = await Promise.all([
     supabase.from('goals').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase
       .from('checkins')
@@ -39,19 +29,7 @@ export default async function GoalsPage() {
       .eq('user_id', user.id)
       .order('date', { ascending: false })
       .limit(40),
-    supabase
-      .from('checkins')
-      .select('date')
-      .eq('user_id', user.id)
-      .eq('type', 'weight')
-      .order('date', { ascending: false })
-      .limit(60),
   ])
-
-  const streak = calculateDailyStreak(
-    (weightCheckins || []).map((c) => c.date),
-    today
-  )
 
   const latestByTracker = latestByTrackerFromCheckins(recentCheckins)
 
@@ -111,9 +89,6 @@ export default async function GoalsPage() {
           ) : null
         }
       />
-      {streak > 0 ? (
-        <p className="text-sm text-muted-foreground">Weight logging streak: {streak} days</p>
-      ) : null}
 
       <div className="space-y-4">
         {goalsWithPlans.length === 0 ? (

@@ -294,7 +294,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Export Data */}
-      <div className="space-y-4 rounded-3xl border bg-background p-6 shadow-sm">
+      <div className="space-y-4 rounded-2xl border bg-card p-6">
         <div>
           <h2 className="text-lg font-semibold">Export Data</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -392,6 +392,8 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+      {/* Extra clearance so the last destructive actions clear the fixed mobile nav */}
+      <div className="h-4 md:hidden" aria-hidden />
     </div>
   )
 }
