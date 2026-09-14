@@ -82,7 +82,7 @@ export function PwaUpdateToast() {
                 // Best-effort; still reload.
               }
               const base = process.env.NEXT_PUBLIC_BASE_PATH || '/goal'
-              window.location.replace(`${base}/`)
+              window.location.replace(base || '/goal')
             })()
           }}
         >
