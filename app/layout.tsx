@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Figtree, Space_Grotesk } from 'next/font/google'
 import { PwaUpdateToast } from '@/components/pwa-update-toast'
 import { brand } from '@/lib/config/brand'
+import { getBasePath } from '@/lib/supabase/env'
 import './globals.css'
 
 const sans = Figtree({
@@ -14,11 +15,14 @@ const display = Space_Grotesk({
   variable: '--font-display',
 })
 
+// Next 14 metadata does not reliably prefix absolute `/…` icon/manifest hrefs
+// with `basePath`, so include it explicitly (same helper as middleware).
+const basePath = getBasePath()
+
 export const metadata: Metadata = {
   title: brand.name,
   description: brand.description,
-  // Paths omit basePath; Next.js prefixes `/goal` automatically.
-  manifest: '/manifest.webmanifest',
+  manifest: `${basePath}/manifest.webmanifest`,
   applicationName: brand.name,
   appleWebApp: {
     capable: true,
@@ -27,10 +31,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: `${basePath}/icons/icon-192.png`, sizes: '192x192', type: 'image/png' },
+      { url: `${basePath}/icons/icon-512.png`, sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+    apple: [{ url: `${basePath}/icons/apple-touch-icon.png`, sizes: '180x180', type: 'image/png' }],
   },
 }
 
