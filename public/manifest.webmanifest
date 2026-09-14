@@ -3,7 +3,7 @@
   "name": "GoalTracker",
   "short_name": "GoalTracker",
   "description": "A personal operating system for goals, fitness, and projects",
-  "start_url": "/goal/dashboard",
+  "start_url": "/goal/",
   "scope": "/goal/",
   "display": "standalone",
   "background_color": "#f8f6f1",

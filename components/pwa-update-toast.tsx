@@ -71,7 +71,20 @@ export function PwaUpdateToast() {
         <button
           type="button"
           className="rounded-xl bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground"
-          onClick={() => window.location.reload()}
+          onClick={() => {
+            void (async () => {
+              try {
+                if ('caches' in window) {
+                  const keys = await caches.keys()
+                  await Promise.all(keys.map((key) => caches.delete(key)))
+                }
+              } catch {
+                // Best-effort; still reload.
+              }
+              const base = process.env.NEXT_PUBLIC_BASE_PATH || '/goal'
+              window.location.replace(`${base}/`)
+            })()
+          }}
         >
           Reload
         </button>
