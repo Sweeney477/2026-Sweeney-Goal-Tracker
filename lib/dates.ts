@@ -9,11 +9,22 @@
 
 export const DEFAULT_TIMEZONE = 'UTC'
 
+/** True when `timeZone` is accepted by Intl (IANA / recognized alias). */
+export function isValidTimezone(timeZone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone }).format(new Date())
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Best-effort browser timezone; safe on server (returns UTC). */
 export function detectBrowserTimezone(): string {
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-    return tz || DEFAULT_TIMEZONE
+    if (tz && isValidTimezone(tz)) return tz
+    return DEFAULT_TIMEZONE
   } catch {
     return DEFAULT_TIMEZONE
   }
@@ -21,8 +32,46 @@ export function detectBrowserTimezone(): string {
 
 export function resolveTimezone(preferred?: string | null): string {
   const trimmed = preferred?.trim()
-  if (trimmed) return trimmed
+  if (trimmed && isValidTimezone(trimmed)) return trimmed
   return detectBrowserTimezone()
+}
+
+/**
+ * Parse a calendar day key (`yyyy-MM-dd`) or ISO-ish timestamp to a Date.
+ * Day-only keys use local noon to avoid UTC-midnight timezone shifts.
+ * Returns null for empty / invalid input (never throws).
+ */
+export function parseDayKey(dayKey: string | null | undefined): Date | null {
+  if (dayKey == null) return null
+  const raw = String(dayKey).trim()
+  if (!raw) return null
+
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(raw)
+    ? new Date(`${raw}T12:00:00`)
+    : new Date(raw)
+
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+/**
+ * Format a day key / timestamp with date-fns-compatible patterns via Intl,
+ * never throwing on bad input.
+ */
+export function formatDayKey(
+  dayKey: string | null | undefined,
+  pattern: 'MMM d, yyyy' | 'MMM d' = 'MMM d, yyyy',
+  fallback = '—'
+): string {
+  const d = parseDayKey(dayKey)
+  if (!d) return fallback
+
+  try {
+    const options: Intl.DateTimeFormatOptions =
+      pattern === 'MMM d' ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' }
+    return new Intl.DateTimeFormat('en-US', options).format(d)
+  } catch {
+    return fallback
+  }
 }
 
 /**
@@ -97,18 +146,50 @@ export function formatLocalDay(
 
 /** Monday (yyyy-MM-dd) of the week containing `dayKey` in that timezone. */
 export function weekStartKey(dayKey: string, timeZone: string = DEFAULT_TIMEZONE): string {
-  // Interpret noon UTC on that calendar day to avoid DST edge flips, then shift
-  // by weekday in the target zone via a stable formatter.
-  const noon = new Date(`${dayKey}T12:00:00Z`)
-  const weekday = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    weekday: 'short',
-  }).format(noon)
-  const map: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }
-  const offset = map[weekday] ?? 0
-  const start = new Date(noon)
-  start.setUTCDate(start.getUTCDate() - offset)
-  return localDayKey(timeZone, start)
+  // Invalid profile / browser TZ must not throw — Projects (and others) call this
+  // during render for the week range label.
+  const tz = isValidTimezone(timeZone) ? timeZone : DEFAULT_TIMEZONE
+  const safeDay =
+    parseDayKey(dayKey) && /^\d{4}-\d{2}-\d{2}/.test(String(dayKey).trim())
+      ? String(dayKey).trim().slice(0, 10)
+      : localDayKey(tz)
+
+  try {
+    // Interpret noon UTC on that calendar day to avoid DST edge flips, then shift
+    // by weekday in the target zone via a stable formatter.
+    const noon = new Date(`${safeDay}T12:00:00Z`)
+    if (Number.isNaN(noon.getTime())) return localDayKey(tz)
+
+    const weekday = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      weekday: 'short',
+    }).format(noon)
+    const map: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }
+    const offset = map[weekday] ?? 0
+    const start = new Date(noon)
+    start.setUTCDate(start.getUTCDate() - offset)
+    return localDayKey(tz, start)
+  } catch {
+    return localDayKey(DEFAULT_TIMEZONE)
+  }
+}
+
+/** Human-readable Mon–Sun week label; never throws. */
+export function weekRangeLabel(timeZone: string = DEFAULT_TIMEZONE, instant: Date = new Date()): string {
+  try {
+    const tz = resolveTimezone(timeZone)
+    const startKey = weekStartKey(localDayKey(tz, instant), tz)
+    const start = parseDayKey(startKey)
+    if (!start) return 'This week'
+
+    const end = new Date(start)
+    end.setDate(end.getDate() + 6)
+
+    const fmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' })
+    return `Week of ${fmt.format(start)} – ${fmt.format(end)}`
+  } catch {
+    return 'This week'
+  }
 }
 
 export function isSameLocalDay(
