@@ -3,8 +3,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
 import { useEffect, useState } from 'react'
-import { format, addWeeks } from 'date-fns'
-import { localDayKey, resolveTimezone, weekStartKey } from '@/lib/dates'
+import { localDayKey, resolveTimezone, weekRangeLabel, weekStartKey } from '@/lib/dates'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/ui/toast'
 import { Project, ProjectMilestone } from '@/lib/types'
@@ -14,6 +13,7 @@ import {
   DEFAULT_MILESTONES,
   deleteProject,
   listProjects,
+  normalizeMilestones,
   updateProject,
   withMilestoneIds,
 } from '@/lib/projects/api'
@@ -58,7 +58,9 @@ export function useProjects() {
 
       const projectsWithMilestones = (data || []).map((p: Project) => ({
         ...p,
-        milestones_json: p.milestones_json || [],
+        week_start: p.week_start || '',
+        status: p.status || 'planning',
+        milestones_json: normalizeMilestones(p.milestones_json),
       }))
 
       setProjects(projectsWithMilestones as Project[])
@@ -119,7 +121,7 @@ export function useProjects() {
       const project = projects.find((p) => p.id === projectId)
       if (!project) return
 
-      const milestones = (project.milestones_json || []).map((m) => {
+      const milestones = normalizeMilestones(project.milestones_json).map((m) => {
         if (m.id === milestoneId) {
           return {
             ...m,
@@ -166,7 +168,7 @@ export function useProjects() {
       if (newStatus === 'shipped') {
         updateData.shipped_at = new Date().toISOString()
 
-        const milestones = (project.milestones_json || []).map((m) => ({
+        const milestones = normalizeMilestones(project.milestones_json).map((m) => ({
           ...m,
           completed: true,
           completed_at: m.completed_at || new Date().toISOString(),
@@ -198,7 +200,7 @@ export function useProjects() {
       const project = projects.find((p) => p.id === projectId)
       if (!project) return
 
-      const milestones = project.milestones_json || []
+      const milestones = normalizeMilestones(project.milestones_json)
       const newMilestone: ProjectMilestone = {
         id: Math.random().toString(36).substring(7),
         label: newMilestoneLabel.trim(),
@@ -228,7 +230,7 @@ export function useProjects() {
       const project = projects.find((p) => p.id === projectId)
       if (!project) return
 
-      const milestones = (project.milestones_json || []).filter((m) => m.id !== milestoneId)
+      const milestones = normalizeMilestones(project.milestones_json).filter((m) => m.id !== milestoneId)
 
       const { error } = await updateProject(supabase, projectId, user.id, {
         milestones_json: milestones,
@@ -261,15 +263,17 @@ export function useProjects() {
     }
   }
 
-  const currentWeekStartKey = weekStartKey(localDayKey(timeZone), timeZone)
-  const currentWeekStart = new Date(`${currentWeekStartKey}T12:00:00`)
-  const currentWeekEnd = addWeeks(currentWeekStart, 1)
-  const dateRangeLabel = `Week of ${format(currentWeekStart, 'MMM d')} – ${format(
-    new Date(currentWeekEnd.getTime() - 24 * 60 * 60 * 1000),
-    'MMM d'
-  )}`
+  // Computed during render — must never throw (empty state still shows this label).
+  const dateRangeLabel = weekRangeLabel(timeZone)
 
   const shippedCount = projects.filter((p) => p.status === 'shipped').length
+
+  const statusColors: Record<string, string> = {
+    planning: 'bg-muted-foreground',
+    in_progress: 'bg-brand',
+    shipped: 'bg-emerald-600',
+    paused: 'bg-amber-600',
+  }
 
   return {
     projects,
@@ -292,12 +296,9 @@ export function useProjects() {
     setNewMilestoneLabel,
     showAddMilestone,
     setShowAddMilestone,
-    statusColors: {
-      planning: 'bg-muted-foreground',
-      in_progress: 'bg-brand',
-      shipped: 'bg-emerald-600',
-      paused: 'bg-amber-600',
-    } as Record<string, string>,
+    statusColors,
+    statusColor: (status: string | null | undefined) =>
+      statusColors[status || ''] || statusColors.planning,
     dateRangeLabel,
     shippedCount,
     calculateProgress,

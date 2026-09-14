@@ -10,10 +10,26 @@ export const DEFAULT_MILESTONES: Omit<ProjectMilestone, 'id'>[] = [
   { label: 'Test', completed: false },
 ]
 
-export function calculateProgress(milestones: ProjectMilestone[] = []): number {
-  if (milestones.length === 0) return 0
-  const completed = milestones.filter((m) => m.completed).length
-  return Math.round((completed / milestones.length) * 100)
+/** Coerce DB / mock milestones payloads into a safe array (never throws). */
+export function normalizeMilestones(raw: unknown): ProjectMilestone[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((m): m is ProjectMilestone => !!m && typeof m === 'object') as ProjectMilestone[]
+  }
+  if (typeof raw === 'string') {
+    try {
+      return normalizeMilestones(JSON.parse(raw))
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+export function calculateProgress(milestones: ProjectMilestone[] | unknown = []): number {
+  const list = normalizeMilestones(milestones)
+  if (list.length === 0) return 0
+  const completed = list.filter((m) => m.completed).length
+  return Math.round((completed / list.length) * 100)
 }
 
 export function deriveProjectXpStats(projects: Project[]) {

@@ -3,10 +3,11 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { format } from 'date-fns'
 import { Plus, CheckCircle2, CalendarDays, MoreVertical, Check, X, Trash2, Edit2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { formatDayKey } from '@/lib/dates'
+import { normalizeMilestones } from '@/lib/projects/api'
 import { useProjects } from '@/lib/projects/use-projects'
 
 const ProgressRing = ({ value }: { value: number }) => (
@@ -50,7 +51,7 @@ export function ProjectsView() {
     setNewMilestoneLabel,
     showAddMilestone,
     setShowAddMilestone,
-    statusColors,
+    statusColor,
     dateRangeLabel,
     shippedCount,
     calculateProgress,
@@ -158,9 +159,13 @@ export function ProjectsView() {
           </div>
         ) : (
           projects.map((project) => {
-            const milestones = project.milestones_json || []
+            const milestones = normalizeMilestones(project.milestones_json)
             const progress = calculateProgress(milestones)
             const isExpanded = expandedProject === project.id
+            const weekLabel = formatDayKey(project.week_start, 'MMM d, yyyy')
+            const shippedLabel = project.shipped_at
+              ? formatDayKey(project.shipped_at, 'MMM d')
+              : null
 
             return (
               <div key={project.id} className="rounded-3xl border bg-background p-4 shadow-sm">
@@ -168,8 +173,8 @@ export function ProjectsView() {
                   <div className="min-w-0 flex-1">
                     <div className="text-xl font-semibold">{project.name}</div>
                     <div className="mt-1 text-sm text-muted-foreground">
-                      Week of {format(new Date(project.week_start), 'MMM d, yyyy')}
-                      {project.shipped_at ? ` • Shipped ${format(new Date(project.shipped_at), 'MMM d')}` : ''}
+                      Week of {weekLabel}
+                      {shippedLabel ? ` • Shipped ${shippedLabel}` : ''}
                     </div>
                   </div>
 
@@ -217,9 +222,9 @@ export function ProjectsView() {
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    {milestones.map((milestone) => (
+                    {milestones.map((milestone, index) => (
                       <label
-                        key={milestone.id}
+                        key={milestone.id || `milestone-${index}`}
                         className={cn(
                           'group relative flex cursor-pointer items-center gap-2 rounded-2xl border p-3 transition-colors',
                           milestone.completed
@@ -371,7 +376,7 @@ export function ProjectsView() {
                     </>
                   )}
                   {project.status === 'shipped' && (
-                    <Badge className={cn(statusColors[project.status], 'h-12 px-4 text-white capitalize')}>
+                    <Badge className={cn(statusColor(project.status), 'h-12 px-4 text-white capitalize')}>
                       <CheckCircle2 className="mr-2 h-4 w-4" />
                       Shipped
                     </Badge>
