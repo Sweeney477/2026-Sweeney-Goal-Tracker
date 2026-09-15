@@ -250,10 +250,18 @@ export function TodayRoutine({
                   key={card.id}
                   {...cardProps}
                   onClick={() => openSheet(metric)}
+                  data-testid={`today-tile-${metric}`}
                 />
               )
             }
-            return <ActivityCard key={card.id} {...cardProps} href={card.href} />
+            return (
+              <ActivityCard
+                key={card.id}
+                {...cardProps}
+                href={card.href}
+                data-testid={`today-tile-${card.id}`}
+              />
+            )
           })}
         </div>
       </section>

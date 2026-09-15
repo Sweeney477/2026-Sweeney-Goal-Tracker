@@ -56,7 +56,7 @@ export function BottomSheet({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[70]" role="presentation">
+    <div className="fixed inset-0 z-[70] flex items-end justify-center" role="presentation">
       <button
         type="button"
         className="absolute inset-0 bg-foreground/25 backdrop-blur-[2px] transition-opacity"
@@ -69,11 +69,13 @@ export function BottomSheet({
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          'absolute inset-x-0 bottom-0 mx-auto max-w-lg animate-in slide-in-from-bottom duration-200',
+          'relative z-10 w-full max-w-lg',
           'rounded-t-[1.75rem] bg-card shadow-lift ring-1 ring-border/60',
           'pb-[max(1rem,env(safe-area-inset-bottom))]',
           className
         )}
+        data-testid="quick-log-sheet"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className={cn('relative overflow-hidden rounded-t-[1.75rem]', toneClassName)}>
           <div className="flex justify-center pt-3">

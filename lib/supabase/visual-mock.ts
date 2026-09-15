@@ -123,15 +123,20 @@ const fixtures: Record<string, any[]> = {
           notes: null,
           created_at: `${date}T21:10:00.000Z`,
         },
-        {
-          id: `ck-${n}`,
-          user_id: USER_ID,
-          date,
-          type: 'coding_minutes',
-          value_json: { value: 90 + (i % 4) * 35 },
-          notes: null,
-          created_at: `${date}T22:00:00.000Z`,
-        },
+        // Leave today’s coding unset so Today one-tap log can be demoed incomplete → done.
+        ...(n === 0
+          ? []
+          : [
+              {
+                id: `ck-${n}`,
+                user_id: USER_ID,
+                date,
+                type: 'coding_minutes',
+                value_json: { value: 90 + (i % 4) * 35 },
+                notes: null,
+                created_at: `${date}T22:00:00.000Z`,
+              },
+            ]),
       ]
     }),
     {

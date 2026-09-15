@@ -42,9 +42,18 @@ type SoftCardProps = {
   href?: string
   onClick?: () => void
   flat?: boolean
+  'data-testid'?: string
 }
 
-export function SoftCard({ children, className, tone = 'white', href, onClick, flat }: SoftCardProps) {
+export function SoftCard({
+  children,
+  className,
+  tone = 'white',
+  href,
+  onClick,
+  flat,
+  'data-testid': testId,
+}: SoftCardProps) {
   const isPastel = tone !== 'white' && tone !== 'brand'
   const classes = cn(
     flat ? 'soft-card-flat' : isPastel ? 'rounded-[1.75rem] shadow-soft' : 'soft-card',
@@ -56,19 +65,23 @@ export function SoftCard({ children, className, tone = 'white', href, onClick, f
 
   if (href) {
     return (
-      <Link href={href} className={classes}>
+      <Link href={href} className={classes} data-testid={testId}>
         {children}
       </Link>
     )
   }
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={cn(classes, 'w-full text-left')}>
+      <button type="button" onClick={onClick} className={cn(classes, 'w-full text-left')} data-testid={testId}>
         {children}
       </button>
     )
   }
-  return <div className={classes}>{children}</div>
+  return (
+    <div className={classes} data-testid={testId}>
+      {children}
+    </div>
+  )
 }
 
 type ActivityCardProps = {
@@ -83,6 +96,7 @@ type ActivityCardProps = {
   tone?: SoftTone
   done?: boolean
   className?: string
+  'data-testid'?: string
 }
 
 /**
@@ -100,6 +114,7 @@ export function ActivityCard({
   tone = 'mint',
   done,
   className,
+  'data-testid': testId,
 }: ActivityCardProps) {
   const onBrand = tone === 'brand'
   return (
@@ -108,6 +123,7 @@ export function ActivityCard({
       onClick={onClick}
       tone={tone}
       className={cn('flex min-h-[158px] flex-col justify-between p-4 md:min-h-[168px] md:p-5', className)}
+      data-testid={testId}
     >
       <div className="flex items-start justify-between gap-2">
         <div
