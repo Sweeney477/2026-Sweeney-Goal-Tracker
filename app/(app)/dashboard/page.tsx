@@ -6,6 +6,10 @@ import { SoftCard } from '@/components/soft-ui'
 import { TodayRoutine, type TodayActivityCard } from '@/components/dashboard/today-routine'
 import { calculateDailyStreak } from '@/lib/checkins/streak'
 import { buildDailyWinChecklist } from '@/lib/checkins/domain'
+import {
+  resolveYesterdayCatchUp,
+  yesterdayDayKey,
+} from '@/lib/checkins/yesterday-catchup'
 import { computeGoalProgress } from '@/lib/goals/progress'
 import { latestByTrackerFromCheckins } from '@/lib/goals/latest-readings'
 import { dashboardTrackers, streakTracker } from '@/lib/config/trackers'
@@ -37,6 +41,7 @@ export default async function DashboardPage() {
 
   const timeZone = resolveTimezone(profile?.timezone)
   const today = localDayKey(timeZone)
+  const yesterday = yesterdayDayKey(timeZone, today)
   const streakDef = streakTracker()
   const streakType = streakDef?.checkinType ?? 'weight'
   const name = firstName(user)
@@ -49,6 +54,7 @@ export default async function DashboardPage() {
 
   const [
     { data: todayCheckins },
+    { data: yesterdayCheckins },
     { data: streakCheckins },
     { data: latestWeight },
     { data: weightData },
@@ -57,6 +63,7 @@ export default async function DashboardPage() {
     { data: projectData },
   ] = await Promise.all([
     supabase.from('checkins').select('*').eq('user_id', user.id).eq('date', today),
+    supabase.from('checkins').select('*').eq('user_id', user.id).eq('date', yesterday),
     supabase
       .from('checkins')
       .select('date')
@@ -106,6 +113,9 @@ export default async function DashboardPage() {
     today
   )
   const checklist = buildDailyWinChecklist(todayCheckins || [], today)
+  const catchUp = resolveYesterdayCatchUp(yesterdayCheckins || [], yesterday, {
+    priorStreakDates: (streakCheckins || []).map((c) => c.date),
+  })
 
   const chartData =
     weightData?.map((item) => ({
@@ -232,6 +242,7 @@ export default async function DashboardPage() {
     <div className="space-y-6 md:space-y-8">
       <TodayRoutine
         name={name}
+        userId={user.id}
         timeZone={timeZone}
         today={today}
         dayLabel={formatLocalDay(timeZone, 'long')}
@@ -240,6 +251,7 @@ export default async function DashboardPage() {
         checklistLength={checklist.length}
         initialCards={activityCards}
         suggestions={suggestions}
+        catchUp={catchUp}
       />
 
       {/* Secondary soft surfaces */}

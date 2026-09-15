@@ -96,15 +96,20 @@ const fixtures: Record<string, any[]> = {
       const date = daysAgo(n)
       const weight = 188 - i * 0.4
       return [
-        {
-          id: `cw-${n}`,
-          user_id: USER_ID,
-          date,
-          type: 'weight',
-          value_json: { value: Number(weight.toFixed(1)) },
-          notes: n === 0 ? 'Feeling light' : null,
-          created_at: `${date}T08:00:00.000Z`,
-        },
+        // Leave yesterday’s weight unset so Today can demo streak catch-up (#13).
+        ...(n === 1
+          ? []
+          : [
+              {
+                id: `cw-${n}`,
+                user_id: USER_ID,
+                date,
+                type: 'weight',
+                value_json: { value: Number(weight.toFixed(1)) },
+                notes: n === 0 ? 'Feeling light' : null,
+                created_at: `${date}T08:00:00.000Z`,
+              },
+            ]),
         {
           id: `cs-${n}`,
           user_id: USER_ID,
