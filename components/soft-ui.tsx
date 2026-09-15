@@ -42,9 +42,18 @@ type SoftCardProps = {
   href?: string
   onClick?: () => void
   flat?: boolean
+  'data-testid'?: string
 }
 
-export function SoftCard({ children, className, tone = 'white', href, onClick, flat }: SoftCardProps) {
+export function SoftCard({
+  children,
+  className,
+  tone = 'white',
+  href,
+  onClick,
+  flat,
+  'data-testid': testId,
+}: SoftCardProps) {
   const isPastel = tone !== 'white' && tone !== 'brand'
   const classes = cn(
     flat ? 'soft-card-flat' : isPastel ? 'rounded-[1.75rem] shadow-soft' : 'soft-card',
@@ -56,19 +65,23 @@ export function SoftCard({ children, className, tone = 'white', href, onClick, f
 
   if (href) {
     return (
-      <Link href={href} className={classes}>
+      <Link href={href} className={classes} data-testid={testId}>
         {children}
       </Link>
     )
   }
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={cn(classes, 'w-full text-left')}>
+      <button type="button" onClick={onClick} className={cn(classes, 'w-full text-left')} data-testid={testId}>
         {children}
       </button>
     )
   }
-  return <div className={classes}>{children}</div>
+  return (
+    <div className={classes} data-testid={testId}>
+      {children}
+    </div>
+  )
 }
 
 type ActivityCardProps = {
@@ -83,6 +96,7 @@ type ActivityCardProps = {
   tone?: SoftTone
   done?: boolean
   className?: string
+  'data-testid'?: string
 }
 
 /**
@@ -100,6 +114,7 @@ export function ActivityCard({
   tone = 'mint',
   done,
   className,
+  'data-testid': testId,
 }: ActivityCardProps) {
   const onBrand = tone === 'brand'
   return (
@@ -108,6 +123,7 @@ export function ActivityCard({
       onClick={onClick}
       tone={tone}
       className={cn('flex min-h-[158px] flex-col justify-between p-4 md:min-h-[168px] md:p-5', className)}
+      data-testid={testId}
     >
       <div className="flex items-start justify-between gap-2">
         <div
@@ -230,8 +246,13 @@ type HeroActionCardProps = {
   meta?: ReactNode
   ctaLabel: string
   href: string
+  /** When set, CTA runs this instead of navigating (e.g. open Today quick-log sheet). */
+  onCtaClick?: () => void
   className?: string
 }
+
+const heroCtaClass =
+  'relative flex w-full items-center justify-between gap-3 border-t border-border/50 px-5 py-3.5 text-left text-sm font-semibold text-brand transition-colors hover:bg-muted/30 md:px-6'
 
 /** Soft white featured card with decorative orb + bottom CTA row */
 export function HeroActionCard({
@@ -241,8 +262,26 @@ export function HeroActionCard({
   meta,
   ctaLabel,
   href,
+  onCtaClick,
   className,
 }: HeroActionCardProps) {
+  const ctaInner = (
+    <>
+      <span>{ctaLabel}</span>
+      <span className="grid h-8 w-8 place-items-center rounded-full bg-brand/10">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M5 12h14M13 6l6 6-6 6"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+    </>
+  )
+
   return (
     <SoftCard className={cn('p-0', className)}>
       <div className="relative overflow-hidden px-5 pb-4 pt-5 md:px-6 md:pt-6">
@@ -275,23 +314,15 @@ export function HeroActionCard({
         </div>
       </div>
 
-      <Link
-        href={href}
-        className="relative flex items-center justify-between gap-3 border-t border-border/50 px-5 py-3.5 text-sm font-semibold text-brand transition-colors hover:bg-muted/30 md:px-6"
-      >
-        <span>{ctaLabel}</span>
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-brand/10">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M5 12h14M13 6l6 6-6 6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
-      </Link>
+      {onCtaClick ? (
+        <button type="button" onClick={onCtaClick} className={heroCtaClass}>
+          {ctaInner}
+        </button>
+      ) : (
+        <Link href={href} className={heroCtaClass}>
+          {ctaInner}
+        </Link>
+      )}
     </SoftCard>
   )
 }

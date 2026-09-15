@@ -1,23 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import {
-  CalendarDays,
-  CheckSquare,
-  Code2,
-  Dumbbell,
-  Flame,
-  Footprints,
-  Scale,
-  TrendingUp,
-} from 'lucide-react'
+import { TrendingUp } from 'lucide-react'
 import { WeightChart } from '@/components/weight-chart'
-import { SoftCard, ActivityCard, HeroActionCard, toneFromPastel } from '@/components/soft-ui'
+import { SoftCard } from '@/components/soft-ui'
+import { TodayRoutine, type TodayActivityCard } from '@/components/dashboard/today-routine'
 import { calculateDailyStreak } from '@/lib/checkins/streak'
 import { buildDailyWinChecklist } from '@/lib/checkins/domain'
 import { computeGoalProgress } from '@/lib/goals/progress'
 import { latestByTrackerFromCheckins } from '@/lib/goals/latest-readings'
 import { dashboardTrackers, streakTracker } from '@/lib/config/trackers'
-import { normalizeUnits, percentOfGoal, weightUnitLabel } from '@/lib/units'
+import { toneFromPastel } from '@/components/soft-ui'
+import { normalizeUnits, weightUnitLabel } from '@/lib/units'
 import { formatLocalDay, localDayKey, resolveTimezone } from '@/lib/dates'
 
 function firstName(user: { email?: string | null; user_metadata?: Record<string, unknown> }) {
@@ -61,6 +54,7 @@ export default async function DashboardPage() {
     { data: weightData },
     { data: recentCheckins },
     { data: goals },
+    { data: projectData },
   ] = await Promise.all([
     supabase.from('checkins').select('*').eq('user_id', user.id).eq('date', today),
     supabase
@@ -97,20 +91,21 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(5),
+    supabase
+      .from('projects')
+      .select('name, status, week_start')
+      .eq('user_id', user.id)
+      .order('week_start', { ascending: false })
+      .limit(5),
   ])
 
   const units = normalizeUnits(profile?.units)
-  const stepGoal = profile?.step_goal || 10000
-  const codingGoal = profile?.coding_goal_minutes || 240
-  const calorieGoal = profile?.calorie_goal || 2200
 
   const streak = calculateDailyStreak(
     (streakCheckins || []).map((c) => c.date),
     today
   )
   const checklist = buildDailyWinChecklist(todayCheckins || [], today)
-  const doneCount = checklist.filter((i) => i.done).length
-  const nextItem = checklist.find((i) => !i.done) || checklist[0]
 
   const chartData =
     weightData?.map((item) => ({
@@ -134,55 +129,57 @@ export default async function DashboardPage() {
         : latestByTrackerFromCheckins(recentCheckins).weight ?? null,
   }
 
-  const iconFor = (id: string) => {
-    const props = { className: 'h-4 w-4', strokeWidth: 1.75 as const }
-    switch (id) {
-      case 'weight':
-        return <Scale {...props} />
-      case 'steps':
-        return <Footprints {...props} />
-      case 'food':
-        return <Flame {...props} />
-      case 'workout':
-        return <Dumbbell {...props} />
-      case 'code':
-        return <Code2 {...props} />
-      default:
-        return <CheckSquare {...props} />
-    }
-  }
+  const latestSteps =
+    stepsToday != null
+      ? Number(stepsToday)
+      : recentCheckins?.find((c) => c.type === 'steps')?.value_json?.value
+  const latestCoding =
+    codingToday != null
+      ? Number(codingToday)
+      : recentCheckins?.find((c) => c.type === 'coding_minutes')?.value_json?.value
+  const activeProject =
+    (projectData || []).find((p) => p.status === 'in_progress') || (projectData || [])[0] || null
 
-  const activityCards = dashboardTrackers().map((tracker) => {
+  const activityCards: TodayActivityCard[] = dashboardTrackers().map((tracker) => {
     const tone = toneFromPastel(tracker.accent)
     const href = `/check-ins?type=${tracker.queryAliases[0]}`
-    const done = checklist.find((c) => c.id === tracker.id)?.done
+    const done = checklist.find((c) => c.id === tracker.id)?.done ?? false
 
     if (tracker.id === 'weight') {
+      const raw =
+        latestWeightValue != null && latestWeightValue !== ''
+          ? Number(latestWeightValue)
+          : null
       return {
-        tracker,
+        id: tracker.id,
+        label: tracker.label,
         href,
         tone,
         done,
         value: latestWeightValue ?? '—',
         unit: weightUnitLabel(units),
         title: done ? 'Logged' : 'Log weight',
+        rawValue: Number.isFinite(raw) ? raw : null,
       }
     }
     if (tracker.id === 'steps') {
       const value = stepsToday != null ? Number(stepsToday) : null
       return {
-        tracker,
+        id: tracker.id,
+        label: tracker.label,
         href,
         tone,
         done,
         value: value != null ? value.toLocaleString() : '—',
         unit: 'steps',
         title: done ? 'On track' : 'Log steps',
+        rawValue: value,
       }
     }
     if (tracker.id === 'food') {
       return {
-        tracker,
+        id: tracker.id,
+        label: tracker.label,
         href,
         tone,
         done,
@@ -193,24 +190,27 @@ export default async function DashboardPage() {
     }
     if (tracker.id === 'workout') {
       return {
-        tracker,
+        id: tracker.id,
+        label: tracker.label,
         href,
         tone,
         done,
         value: workoutToday?.value_json?.type || (workoutToday ? 'Done' : '—'),
-        unit: undefined as string | undefined,
+        unit: undefined,
         title: done ? 'Session done' : 'Log workout',
       }
     }
     const value = codingToday != null ? Number(codingToday) : null
     return {
-      tracker,
+      id: tracker.id,
+      label: tracker.label,
       href,
       tone,
       done,
       value: value != null ? (value / 60).toFixed(1) : '—',
       unit: value != null ? 'hr' : undefined,
       title: done ? 'Deep work' : 'Log coding',
+      rawValue: value,
     }
   })
 
@@ -221,107 +221,26 @@ export default async function DashboardPage() {
 
   const goalPastels = ['pastel-mint', 'pastel-lilac', 'pastel-sky'] as const
 
-
-  const complete = checklist.length > 0 && doneCount === checklist.length
-  const pad2 = (n: number) => String(Math.max(0, n)).padStart(2, '0')
+  const suggestions = {
+    weight: latestWeightValue != null ? String(latestWeightValue) : '',
+    steps: latestSteps != null ? String(latestSteps) : '',
+    codingMinutes: latestCoding != null ? String(latestCoding) : '',
+    project: activeProject?.name || '',
+  }
 
   return (
     <div className="space-y-6 md:space-y-8">
-      {/* Hello + Today’s summary + big activity count */}
-      <section className="space-y-5">
-        <div>
-          <h1 className="font-display text-[1.85rem] font-semibold tracking-tight text-foreground md:text-4xl">
-            Hello, {name}
-          </h1>
-          <p className="mt-1 text-base text-muted-foreground md:text-lg">Today&apos;s summary</p>
-        </div>
-
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-display text-4xl font-semibold tracking-tight md:text-5xl">
-                {pad2(doneCount)}
-              </span>
-              <span className="font-display text-3xl font-medium text-foreground/25 md:text-4xl">/</span>
-              <span className="font-display text-3xl font-medium text-foreground/30 md:text-4xl">
-                {pad2(checklist.length)}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">Tot activities today</p>
-          </div>
-
-          <div className="flex flex-col items-end gap-2">
-            <div
-              className="grid h-11 w-11 place-items-center rounded-2xl bg-card shadow-soft ring-1 ring-border/50"
-              title={formatLocalDay(timeZone, 'long')}
-            >
-              <CalendarDays className="h-5 w-5 text-foreground/70" strokeWidth={1.6} aria-hidden />
-              <span className="sr-only">{formatLocalDay(timeZone, 'long')}</span>
-            </div>
-            {streak > 0 ? (
-              <div className="rounded-full bg-brand/10 px-2.5 py-1 text-[11px] font-semibold text-brand">
-                {streak}-day streak
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
-      {/* Soft white featured hero + orb + CTA */}
-      <HeroActionCard
-        eyebrow={complete ? 'Today' : 'Focus'}
-        title={
-          complete
-            ? 'Today looks complete'
-            : nextItem
-              ? `Log ${nextItem.label.toLowerCase()}`
-              : 'Start today’s log'
-        }
-        description={
-          complete
-            ? 'All leading metrics are in. Keep the calm streak going tomorrow.'
-            : nextItem?.helper || 'Capture the next leading metric for your local day.'
-        }
-        meta={
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-            <span>
-              Progress{' '}
-              <strong className="font-semibold text-foreground">
-                {doneCount}/{checklist.length}
-              </strong>
-            </span>
-            <span className="text-foreground/35">·</span>
-            <span>{formatLocalDay(timeZone, 'long')}</span>
-          </div>
-        }
-        ctaLabel={complete ? 'Open today’s log' : 'Start today’s session'}
-        href={nextItem?.href || '/check-ins'}
+      <TodayRoutine
+        name={name}
+        timeZone={timeZone}
+        today={today}
+        dayLabel={formatLocalDay(timeZone, 'long')}
+        units={units}
+        streak={streak}
+        checklistLength={checklist.length}
+        initialCards={activityCards}
+        suggestions={suggestions}
       />
-
-      {/* 2-column pastel activity grid — dominant surface */}
-      <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="font-display text-lg font-semibold tracking-tight">Today&apos;s routine</h2>
-          <Link href="/check-ins" className="text-sm font-medium text-brand">
-            Open log
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
-          {activityCards.map((card) => (
-            <ActivityCard
-              key={card.tracker.id}
-              href={card.href}
-              category={card.tracker.label}
-              title={card.title}
-              value={card.value}
-              unit={card.unit}
-              icon={iconFor(card.tracker.id)}
-              tone={card.tone}
-              done={!!card.done}
-            />
-          ))}
-        </div>
-      </section>
 
       {/* Secondary soft surfaces */}
       <section className="grid gap-3 md:grid-cols-5 md:gap-4">
