@@ -230,8 +230,13 @@ type HeroActionCardProps = {
   meta?: ReactNode
   ctaLabel: string
   href: string
+  /** When set, CTA runs this instead of navigating (e.g. open Today quick-log sheet). */
+  onCtaClick?: () => void
   className?: string
 }
+
+const heroCtaClass =
+  'relative flex w-full items-center justify-between gap-3 border-t border-border/50 px-5 py-3.5 text-left text-sm font-semibold text-brand transition-colors hover:bg-muted/30 md:px-6'
 
 /** Soft white featured card with decorative orb + bottom CTA row */
 export function HeroActionCard({
@@ -241,8 +246,26 @@ export function HeroActionCard({
   meta,
   ctaLabel,
   href,
+  onCtaClick,
   className,
 }: HeroActionCardProps) {
+  const ctaInner = (
+    <>
+      <span>{ctaLabel}</span>
+      <span className="grid h-8 w-8 place-items-center rounded-full bg-brand/10">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M5 12h14M13 6l6 6-6 6"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+    </>
+  )
+
   return (
     <SoftCard className={cn('p-0', className)}>
       <div className="relative overflow-hidden px-5 pb-4 pt-5 md:px-6 md:pt-6">
@@ -275,23 +298,15 @@ export function HeroActionCard({
         </div>
       </div>
 
-      <Link
-        href={href}
-        className="relative flex items-center justify-between gap-3 border-t border-border/50 px-5 py-3.5 text-sm font-semibold text-brand transition-colors hover:bg-muted/30 md:px-6"
-      >
-        <span>{ctaLabel}</span>
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-brand/10">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M5 12h14M13 6l6 6-6 6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
-      </Link>
+      {onCtaClick ? (
+        <button type="button" onClick={onCtaClick} className={heroCtaClass}>
+          {ctaInner}
+        </button>
+      ) : (
+        <Link href={href} className={heroCtaClass}>
+          {ctaInner}
+        </Link>
+      )}
     </SoftCard>
   )
 }

@@ -18,7 +18,6 @@ import { normalizeUnits, weightUnitLabel, type UnitSystem } from '@/lib/units'
 import { calculateDailyStreak } from '@/lib/checkins/streak'
 import {
   isTileDone,
-  checkinTypeForTile,
   valueOf,
   todayTypes as todayTypesFromCheckins,
   latestOfType,
@@ -32,6 +31,7 @@ import {
   upsertCheckin,
   insertMeal,
 } from '@/lib/checkins/api'
+import { isQuickLogMetric, saveQuickLogMetric } from '@/lib/checkins/quick-log'
 import { dayRelativeLabel, localDayKey, resolveTimezone } from '@/lib/dates'
 
 export type TileType = QuickLogTileId
@@ -271,30 +271,27 @@ export function useCheckins() {
       } = await supabase.auth.getUser()
       if (!user) return
 
-      if (tile === 'weight') {
-        const value = parseFloat(inputs.weight.value || suggestions.weight || '0')
-        if (!value) throw new Error('Enter a weight')
-        const { error } = await upsertCheckin(supabase, {
-          user_id: user.id,
+      if (isQuickLogMetric(tile)) {
+        const value =
+          tile === 'weight'
+            ? inputs.weight.value || suggestions.weight || '0'
+            : tile === 'steps'
+              ? inputs.steps.value || suggestions.steps || '0'
+              : inputs.code.minutes || suggestions.codingMinutes || '0'
+        const notes =
+          tile === 'weight'
+            ? inputs.weight.notes
+            : tile === 'steps'
+              ? inputs.steps.notes
+              : inputs.code.notes
+        await saveQuickLogMetric(supabase, {
+          userId: user.id,
           date: today,
-          type: 'weight',
-          value_json: { value },
-          notes: inputs.weight.notes || null,
+          metric: tile,
+          value,
+          project: tile === 'code' ? inputs.code.project || suggestions.project : undefined,
+          notes: notes || null,
         })
-        if (error) throw error
-      }
-
-      if (tile === 'steps') {
-        const value = parseInt(inputs.steps.value || suggestions.steps || '0', 10)
-        if (!value) throw new Error('Enter steps')
-        const { error } = await upsertCheckin(supabase, {
-          user_id: user.id,
-          date: today,
-          type: 'steps',
-          value_json: { value },
-          notes: inputs.steps.notes || null,
-        })
-        if (error) throw error
       }
 
       if (tile === 'food') {
@@ -328,21 +325,6 @@ export function useCheckins() {
           type: 'workout',
           value_json: { type, duration_min: duration || undefined },
           notes: inputs.workout.notes || null,
-        })
-        if (error) throw error
-      }
-
-      if (tile === 'code') {
-        const minutes = inputs.code.minutes || suggestions.codingMinutes || '0'
-        const value = parseInt(minutes, 10)
-        if (!value) throw new Error('Enter coding minutes')
-        const project = inputs.code.project || suggestions.project || 'Project'
-        const { error } = await upsertCheckin(supabase, {
-          user_id: user.id,
-          date: today,
-          type: checkinTypeForTile('code') ?? 'coding_minutes',
-          value_json: { value, project },
-          notes: inputs.code.notes || null,
         })
         if (error) throw error
       }
