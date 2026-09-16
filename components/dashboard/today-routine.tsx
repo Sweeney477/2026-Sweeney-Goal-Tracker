@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   CalendarDays,
   CheckSquare,
@@ -14,12 +15,21 @@ import {
 import { ActivityCard, HeroActionCard, type SoftTone } from '@/components/soft-ui'
 import { QuickLogSheet, type QuickLogSuggestions } from '@/components/check-ins/quick-log-sheet'
 import {
+  YesterdayCatchUpBanner,
+  YesterdayCatchUpLink,
+} from '@/components/dashboard/yesterday-catchup-banner'
+import {
   isQuickLogMetric,
   type QuickLogMetricId,
   type QuickLogSaveResult,
 } from '@/lib/checkins/quick-log'
+import {
+  yesterdayCatchUpDismissKey,
+  type YesterdayCatchUpInfo,
+} from '@/lib/checkins/yesterday-catchup'
 import type { UnitSystem } from '@/lib/units'
 import type { QuickLogTileId } from '@/lib/config/trackers'
+import { streakTracker } from '@/lib/config/trackers'
 
 export type TodayActivityCard = {
   id: QuickLogTileId
@@ -36,6 +46,7 @@ export type TodayActivityCard = {
 
 export type TodayRoutineProps = {
   name: string
+  userId: string
   timeZone: string
   today: string
   dayLabel: string
@@ -44,8 +55,8 @@ export type TodayRoutineProps = {
   checklistLength: number
   initialCards: TodayActivityCard[]
   suggestions: QuickLogSuggestions
-  /** Optional override for sheet day — reserved for #13 yesterday catch-up. */
-  logDate?: string
+  /** When set, yesterday has incomplete sheetable leading metrics. */
+  catchUp: YesterdayCatchUpInfo | null
 }
 
 function iconFor(id: QuickLogTileId) {
@@ -96,8 +107,22 @@ function formatCardAfterSave(
   }
 }
 
+function nextCatchUpMetric(
+  incomplete: QuickLogMetricId[],
+  justSaved?: QuickLogMetricId
+): QuickLogMetricId | null {
+  const remaining = justSaved ? incomplete.filter((m) => m !== justSaved) : incomplete
+  if (!remaining.length) return null
+  const streakId = streakTracker()?.id
+  if (streakId && isQuickLogMetric(streakId) && remaining.includes(streakId)) {
+    return streakId
+  }
+  return remaining[0]
+}
+
 export function TodayRoutine({
   name,
+  userId,
   timeZone,
   today,
   dayLabel,
@@ -106,20 +131,67 @@ export function TodayRoutine({
   checklistLength,
   initialCards,
   suggestions,
-  logDate,
+  catchUp: catchUpProp,
 }: TodayRoutineProps) {
+  const router = useRouter()
   const [cards, setCards] = useState(initialCards)
-  const [sheetMetric, setSheetMetric] = useState<QuickLogMetricId | null>(null)
+  /** Today’s one-tap sheet — independent from catch-up. */
+  const [todayMetric, setTodayMetric] = useState<QuickLogMetricId | null>(null)
+  /** Yesterday catch-up sheet — must not share open state with today. */
+  const [catchUpMetric, setCatchUpMetric] = useState<QuickLogMetricId | null>(null)
+  /** Optimistic completions so router.refresh() can’t flash the banner back. */
+  const [caughtUpMetrics, setCaughtUpMetrics] = useState<QuickLogMetricId[]>([])
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+  const [dismissHydrated, setDismissHydrated] = useState(false)
 
-  const targetDate = logDate || today
+  useEffect(() => {
+    setCaughtUpMetrics([])
+  }, [userId, today, catchUpProp?.yesterday])
+
+  useEffect(() => {
+    try {
+      const key = yesterdayCatchUpDismissKey(userId, today)
+      setBannerDismissed(window.localStorage.getItem(key) === '1')
+    } catch {
+      setBannerDismissed(false)
+    }
+    setDismissHydrated(true)
+  }, [userId, today])
+
+  const catchUp = useMemo(() => {
+    if (!catchUpProp) return null
+    const incompleteMetrics = catchUpProp.incompleteMetrics.filter(
+      (m) => !caughtUpMetrics.includes(m)
+    )
+    if (!incompleteMetrics.length) return null
+    const preferredMetric = nextCatchUpMetric(incompleteMetrics)
+    if (!preferredMetric) return null
+    return {
+      ...catchUpProp,
+      preferredMetric,
+      incompleteMetrics,
+    }
+  }, [catchUpProp, caughtUpMetrics])
+
   const doneCount = useMemo(() => cards.filter((c) => c.done).length, [cards])
   const complete = checklistLength > 0 && doneCount === checklistLength
   const nextItem = cards.find((c) => !c.done) || cards[0]
 
-  const openSheet = (metric: QuickLogMetricId) => setSheetMetric(metric)
-  const closeSheet = () => setSheetMetric(null)
+  const openTodaySheet = (metric: QuickLogMetricId) => {
+    setCatchUpMetric(null)
+    setTodayMetric(metric)
+  }
+  const closeTodaySheet = () => setTodayMetric(null)
 
-  const handleSaved = (result: QuickLogSaveResult) => {
+  const openCatchUpSheet = (metric?: QuickLogMetricId) => {
+    const target = metric ?? catchUp?.preferredMetric
+    if (!target) return
+    setTodayMetric(null)
+    setCatchUpMetric(target)
+  }
+  const closeCatchUpSheet = () => setCatchUpMetric(null)
+
+  const handleTodaySaved = (result: QuickLogSaveResult) => {
     const formatted = formatCardAfterSave(result.metric, result.numericValue, units)
     setCards((prev) =>
       prev.map((card) => {
@@ -134,15 +206,39 @@ export function TodayRoutine({
         }
       })
     )
+    // Streak SoftCard below is server-rendered; refresh after weight logs.
+    if (result.metric === (streakTracker()?.id ?? 'weight')) {
+      router.refresh()
+    }
   }
 
-  const activeCard = sheetMetric ? cards.find((c) => c.id === sheetMetric) : null
-  const sheetInitial =
-    activeCard?.rawValue != null && Number.isFinite(activeCard.rawValue)
-      ? String(activeCard.rawValue)
+  const handleCatchUpSaved = (result: QuickLogSaveResult) => {
+    setCaughtUpMetrics((prev) =>
+      prev.includes(result.metric) ? prev : [...prev, result.metric]
+    )
+    // Recalculate streak (and any server surfaces) after yesterday write.
+    router.refresh()
+  }
+
+  const dismissBanner = () => {
+    setBannerDismissed(true)
+    try {
+      window.localStorage.setItem(yesterdayCatchUpDismissKey(userId, today), '1')
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }
+
+  const activeTodayCard = todayMetric ? cards.find((c) => c.id === todayMetric) : null
+  const todaySheetInitial =
+    activeTodayCard?.rawValue != null && Number.isFinite(activeTodayCard.rawValue)
+      ? String(activeTodayCard.rawValue)
       : undefined
 
   const heroHref = nextItem?.href || '/check-ins'
+  const showCatchUp = Boolean(catchUp && catchUp.incompleteMetrics.length > 0)
+  const showBanner = showCatchUp && dismissHydrated && !bannerDismissed
+  const showCatchUpLink = showCatchUp && dismissHydrated && bannerDismissed
 
   return (
     <>
@@ -185,6 +281,21 @@ export function TodayRoutine({
         </div>
       </section>
 
+      {showBanner && catchUp ? (
+        <YesterdayCatchUpBanner
+          preferredMetric={catchUp.preferredMetric}
+          incompleteCount={catchUp.incompleteMetrics.length}
+          onCatchUp={() => openCatchUpSheet()}
+          onDismiss={dismissBanner}
+        />
+      ) : null}
+
+      {showCatchUpLink ? (
+        <div className="flex justify-end">
+          <YesterdayCatchUpLink onCatchUp={() => openCatchUpSheet()} />
+        </div>
+      ) : null}
+
       <HeroActionCard
         eyebrow={complete ? 'Today' : 'Focus'}
         title={
@@ -219,7 +330,7 @@ export function TodayRoutine({
           nextItem && isQuickLogMetric(nextItem.id) && !complete
             ? () => {
                 const id = nextItem.id
-                if (isQuickLogMetric(id)) openSheet(id)
+                if (isQuickLogMetric(id)) openTodaySheet(id)
               }
             : undefined
         }
@@ -249,7 +360,7 @@ export function TodayRoutine({
                 <ActivityCard
                   key={card.id}
                   {...cardProps}
-                  onClick={() => openSheet(metric)}
+                  onClick={() => openTodaySheet(metric)}
                   data-testid={`today-tile-${metric}`}
                 />
               )
@@ -267,15 +378,26 @@ export function TodayRoutine({
       </section>
 
       <QuickLogSheet
-        open={sheetMetric != null}
-        onClose={closeSheet}
-        metric={sheetMetric}
-        date={targetDate}
+        open={todayMetric != null}
+        onClose={closeTodaySheet}
+        metric={todayMetric}
+        date={today}
         timeZone={timeZone}
         units={units}
         suggestions={suggestions}
-        initialValue={sheetInitial}
-        onSaved={handleSaved}
+        initialValue={todaySheetInitial}
+        onSaved={handleTodaySaved}
+      />
+
+      <QuickLogSheet
+        open={catchUpMetric != null && catchUp != null}
+        onClose={closeCatchUpSheet}
+        metric={catchUpMetric}
+        date={catchUp?.yesterday ?? today}
+        timeZone={timeZone}
+        units={units}
+        suggestions={suggestions}
+        onSaved={handleCatchUpSaved}
       />
     </>
   )
