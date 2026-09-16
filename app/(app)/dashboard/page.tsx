@@ -16,6 +16,11 @@ import { dashboardTrackers, streakTracker } from '@/lib/config/trackers'
 import { toneFromPastel } from '@/components/soft-ui'
 import { normalizeUnits, weightUnitLabel } from '@/lib/units'
 import { formatLocalDay, localDayKey, resolveTimezone } from '@/lib/dates'
+import {
+  isLocalSunday,
+  ritualWeekStart,
+} from '@/lib/review/weekly-ritual'
+import { isVisualReview } from '@/lib/supabase/visual-mock'
 
 function firstName(user: { email?: string | null; user_metadata?: Record<string, unknown> }) {
   const meta = (user.user_metadata?.full_name || user.user_metadata?.name || '') as string
@@ -25,7 +30,11 @@ function firstName(user: { email?: string | null; user_metadata?: Record<string,
   return part ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : 'there'
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: { demo?: string }
+}) {
   const supabase = await createClient()
   const {
     data: { user },
@@ -41,7 +50,12 @@ export default async function DashboardPage() {
 
   const timeZone = resolveTimezone(profile?.timezone)
   const today = localDayKey(timeZone)
+  const weekStart = ritualWeekStart(today, timeZone)
   const yesterday = yesterdayDayKey(timeZone, today)
+  /** Visual-review only: `?demo=sunday` forces the Sunday Review hero for screenshots. */
+  const isSunday =
+    isLocalSunday(timeZone) ||
+    (isVisualReview() && searchParams?.demo === 'sunday')
   const streakDef = streakTracker()
   const streakType = streakDef?.checkinType ?? 'weight'
   const name = firstName(user)
@@ -245,6 +259,8 @@ export default async function DashboardPage() {
         userId={user.id}
         timeZone={timeZone}
         today={today}
+        weekStart={weekStart}
+        isSunday={isSunday}
         dayLabel={formatLocalDay(timeZone, 'long')}
         units={units}
         streak={streak}
