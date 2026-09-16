@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -157,6 +157,7 @@ export function TodayRoutine({
   const [dismissHydrated, setDismissHydrated] = useState(false)
   const [weekClosed, setWeekClosed] = useState(false)
   const [weekHydrated, setWeekHydrated] = useState(false)
+  const weekClosedToastShown = useRef(false)
 
   useEffect(() => {
     setCaughtUpMetrics([])
@@ -175,7 +176,8 @@ export function TodayRoutine({
   useEffect(() => {
     setWeekClosed(Boolean(readClosedWeeklyRitual(userId, weekStart)))
     setWeekHydrated(true)
-    if (consumeWeekClosedToastPending()) {
+    if (!weekClosedToastShown.current && consumeWeekClosedToastPending()) {
+      weekClosedToastShown.current = true
       toast('Week closed', 'success')
     }
   }, [userId, weekStart])

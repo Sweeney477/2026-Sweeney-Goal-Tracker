@@ -6,6 +6,7 @@ import { Check, ChevronLeft } from 'lucide-react'
 import { SoftCard } from '@/components/soft-ui'
 import { toast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
+import { isVisualReview } from '@/lib/supabase/visual-mock'
 import {
   markWeekClosedToastPending,
   readClosedWeeklyRitual,
@@ -105,8 +106,11 @@ export function WeeklyRitualFlow({ userId, timeZone, weekStart }: WeeklyRitualFl
     setSubmitting(true)
     writeClosedWeeklyRitual(userId, weekStart, answers)
     markWeekClosedToastPending()
-    toast('Week closed', 'success')
-    router.push('/dashboard')
+    // Toast is shown on Today after navigation (avoids a duplicate flash).
+    // Visual-review demos keep ?demo=sunday so the closed Sunday hero is visible.
+    const next =
+      isVisualReview() ? '/dashboard?demo=sunday' : '/dashboard'
+    router.push(next)
   }
 
   if (!hydrated) {
