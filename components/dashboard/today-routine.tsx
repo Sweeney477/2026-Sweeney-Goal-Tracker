@@ -139,13 +139,14 @@ export function TodayRoutine({
   const [todayMetric, setTodayMetric] = useState<QuickLogMetricId | null>(null)
   /** Yesterday catch-up sheet — must not share open state with today. */
   const [catchUpMetric, setCatchUpMetric] = useState<QuickLogMetricId | null>(null)
-  const [catchUp, setCatchUp] = useState(catchUpProp)
+  /** Optimistic completions so router.refresh() can’t flash the banner back. */
+  const [caughtUpMetrics, setCaughtUpMetrics] = useState<QuickLogMetricId[]>([])
   const [bannerDismissed, setBannerDismissed] = useState(false)
   const [dismissHydrated, setDismissHydrated] = useState(false)
 
   useEffect(() => {
-    setCatchUp(catchUpProp)
-  }, [catchUpProp])
+    setCaughtUpMetrics([])
+  }, [userId, today, catchUpProp?.yesterday])
 
   useEffect(() => {
     try {
@@ -156,6 +157,21 @@ export function TodayRoutine({
     }
     setDismissHydrated(true)
   }, [userId, today])
+
+  const catchUp = useMemo(() => {
+    if (!catchUpProp) return null
+    const incompleteMetrics = catchUpProp.incompleteMetrics.filter(
+      (m) => !caughtUpMetrics.includes(m)
+    )
+    if (!incompleteMetrics.length) return null
+    const preferredMetric = nextCatchUpMetric(incompleteMetrics)
+    if (!preferredMetric) return null
+    return {
+      ...catchUpProp,
+      preferredMetric,
+      incompleteMetrics,
+    }
+  }, [catchUpProp, caughtUpMetrics])
 
   const doneCount = useMemo(() => cards.filter((c) => c.done).length, [cards])
   const complete = checklistLength > 0 && doneCount === checklistLength
@@ -197,16 +213,9 @@ export function TodayRoutine({
   }
 
   const handleCatchUpSaved = (result: QuickLogSaveResult) => {
-    setCatchUp((prev) => {
-      if (!prev) return null
-      const preferred = nextCatchUpMetric(prev.incompleteMetrics, result.metric)
-      if (!preferred) return null
-      return {
-        ...prev,
-        preferredMetric: preferred,
-        incompleteMetrics: prev.incompleteMetrics.filter((m) => m !== result.metric),
-      }
-    })
+    setCaughtUpMetrics((prev) =>
+      prev.includes(result.metric) ? prev : [...prev, result.metric]
+    )
     // Recalculate streak (and any server surfaces) after yesterday write.
     router.refresh()
   }
