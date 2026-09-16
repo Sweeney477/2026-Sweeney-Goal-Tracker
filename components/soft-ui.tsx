@@ -249,6 +249,7 @@ type HeroActionCardProps = {
   /** When set, CTA runs this instead of navigating (e.g. open Today quick-log sheet). */
   onCtaClick?: () => void
   className?: string
+  'data-testid'?: string
 }
 
 const heroCtaClass =
@@ -264,6 +265,7 @@ export function HeroActionCard({
   href,
   onCtaClick,
   className,
+  'data-testid': testId,
 }: HeroActionCardProps) {
   const ctaInner = (
     <>
@@ -283,7 +285,7 @@ export function HeroActionCard({
   )
 
   return (
-    <SoftCard className={cn('p-0', className)}>
+    <SoftCard className={cn('p-0', className)} data-testid={testId}>
       <div className="relative overflow-hidden px-5 pb-4 pt-5 md:px-6 md:pt-6">
         {/* Decorative soft orbs — light, not gamey */}
         <div

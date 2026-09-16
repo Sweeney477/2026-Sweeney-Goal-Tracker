@@ -27,6 +27,12 @@ import {
   yesterdayCatchUpDismissKey,
   type YesterdayCatchUpInfo,
 } from '@/lib/checkins/yesterday-catchup'
+import {
+  consumeWeekClosedToastPending,
+  readClosedWeeklyRitual,
+  shouldPromoteSundayReview,
+} from '@/lib/review/weekly-ritual'
+import { toast } from '@/components/ui/toast'
 import type { UnitSystem } from '@/lib/units'
 import type { QuickLogTileId } from '@/lib/config/trackers'
 import { streakTracker } from '@/lib/config/trackers'
@@ -49,6 +55,10 @@ export type TodayRoutineProps = {
   userId: string
   timeZone: string
   today: string
+  /** Monday key for the week containing `today`. */
+  weekStart: string
+  /** Sunday in the user's profile timezone (or visual-review demo). */
+  isSunday: boolean
   dayLabel: string
   units: UnitSystem
   streak: number
@@ -125,6 +135,8 @@ export function TodayRoutine({
   userId,
   timeZone,
   today,
+  weekStart,
+  isSunday,
   dayLabel,
   units,
   streak,
@@ -143,6 +155,8 @@ export function TodayRoutine({
   const [caughtUpMetrics, setCaughtUpMetrics] = useState<QuickLogMetricId[]>([])
   const [bannerDismissed, setBannerDismissed] = useState(false)
   const [dismissHydrated, setDismissHydrated] = useState(false)
+  const [weekClosed, setWeekClosed] = useState(false)
+  const [weekHydrated, setWeekHydrated] = useState(false)
 
   useEffect(() => {
     setCaughtUpMetrics([])
@@ -157,6 +171,14 @@ export function TodayRoutine({
     }
     setDismissHydrated(true)
   }, [userId, today])
+
+  useEffect(() => {
+    setWeekClosed(Boolean(readClosedWeeklyRitual(userId, weekStart)))
+    setWeekHydrated(true)
+    if (consumeWeekClosedToastPending()) {
+      toast('Week closed', 'success')
+    }
+  }, [userId, weekStart])
 
   const catchUp = useMemo(() => {
     if (!catchUpProp) return null
@@ -239,6 +261,9 @@ export function TodayRoutine({
   const showCatchUp = Boolean(catchUp && catchUp.incompleteMetrics.length > 0)
   const showBanner = showCatchUp && dismissHydrated && !bannerDismissed
   const showCatchUpLink = showCatchUp && dismissHydrated && bannerDismissed
+  const promoteSundayReview =
+    weekHydrated && shouldPromoteSundayReview({ isSunday, weekAlreadyClosed: weekClosed })
+  const sundayWeekClosed = weekHydrated && isSunday && weekClosed
 
   return (
     <>
@@ -296,45 +321,102 @@ export function TodayRoutine({
         </div>
       ) : null}
 
-      <HeroActionCard
-        eyebrow={complete ? 'Today' : 'Focus'}
-        title={
-          complete
-            ? 'Today looks complete'
-            : nextItem
-              ? `Log ${nextItem.label.toLowerCase()}`
-              : 'Start today’s log'
-        }
-        description={
-          complete
-            ? 'All leading metrics are in. Keep the calm streak going tomorrow.'
-            : nextItem
-              ? `Capture ${nextItem.label.toLowerCase()} for your local day.`
-              : 'Capture the next leading metric for your local day.'
-        }
-        meta={
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-            <span>
-              Progress{' '}
-              <strong className="font-semibold text-foreground">
-                {doneCount}/{checklistLength}
-              </strong>
-            </span>
-            <span className="text-foreground/35">·</span>
-            <span>{dayLabel}</span>
-          </div>
-        }
-        ctaLabel={complete ? 'Open today’s log' : 'Start today’s session'}
-        href={heroHref || '/check-ins'}
-        onCtaClick={
-          nextItem && isQuickLogMetric(nextItem.id) && !complete
-            ? () => {
-                const id = nextItem.id
-                if (isQuickLogMetric(id)) openTodaySheet(id)
-              }
-            : undefined
-        }
-      />
+      {promoteSundayReview ? (
+        <HeroActionCard
+          eyebrow="Sunday"
+          title="Close the week"
+          description="A short, calm review — what went well, what to adjust, then you’re done."
+          meta={
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+              <span>{dayLabel}</span>
+              <span className="text-foreground/35">·</span>
+              <span>Weekly review</span>
+            </div>
+          }
+          ctaLabel="Start weekly review"
+          href="/review"
+          data-testid="sunday-review-hero"
+        />
+      ) : sundayWeekClosed ? (
+        <HeroActionCard
+          eyebrow="This week"
+          title="Week closed"
+          description="Nice close. Keep today’s log gentle — the week is already reflected."
+          meta={
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+              <span>{dayLabel}</span>
+              <span className="text-foreground/35">·</span>
+              <span>
+                Progress{' '}
+                <strong className="font-semibold text-foreground">
+                  {doneCount}/{checklistLength}
+                </strong>
+              </span>
+            </div>
+          }
+          ctaLabel={complete ? 'Open today’s log' : nextItem ? `Log ${nextItem.label.toLowerCase()}` : 'Open today’s log'}
+          href={heroHref || '/check-ins'}
+          onCtaClick={
+            nextItem && isQuickLogMetric(nextItem.id) && !complete
+              ? () => {
+                  const id = nextItem.id
+                  if (isQuickLogMetric(id)) openTodaySheet(id)
+                }
+              : undefined
+          }
+          data-testid="sunday-week-closed-hero"
+        />
+      ) : (
+        <HeroActionCard
+          eyebrow={complete ? 'Today' : 'Focus'}
+          title={
+            complete
+              ? 'Today looks complete'
+              : nextItem
+                ? `Log ${nextItem.label.toLowerCase()}`
+                : 'Start today’s log'
+          }
+          description={
+            complete
+              ? 'All leading metrics are in. Keep the calm streak going tomorrow.'
+              : nextItem
+                ? `Capture ${nextItem.label.toLowerCase()} for your local day.`
+                : 'Capture the next leading metric for your local day.'
+          }
+          meta={
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+              <span>
+                Progress{' '}
+                <strong className="font-semibold text-foreground">
+                  {doneCount}/{checklistLength}
+                </strong>
+              </span>
+              <span className="text-foreground/35">·</span>
+              <span>{dayLabel}</span>
+            </div>
+          }
+          ctaLabel={complete ? 'Open today’s log' : 'Start today’s session'}
+          href={heroHref || '/check-ins'}
+          onCtaClick={
+            nextItem && isQuickLogMetric(nextItem.id) && !complete
+              ? () => {
+                  const id = nextItem.id
+                  if (isQuickLogMetric(id)) openTodaySheet(id)
+                }
+              : undefined
+          }
+        />
+      )}
+
+      <div className="flex justify-end">
+        <Link
+          href="/review"
+          className="text-sm font-medium text-brand underline-offset-2 hover:underline"
+          data-testid="today-weekly-review-link"
+        >
+          Weekly review
+        </Link>
+      </div>
 
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
